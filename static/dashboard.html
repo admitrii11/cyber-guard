@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Adaptive IAM Guardian Dashboard</title>
+  <title>cyber_guard_dashboard</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Serif:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -15,8 +15,8 @@
     <div class="dash-top-strip"></div>
     <header class="dash-header">
       <div>
-        <h1 class="brand-title">CYBER GUARD<span class="brand-dot">.</span></h1>
-        <p class="brand-sub">ADAPTIVE IAM · BEHAVIORAL ANALYTICS · OPERATIONS CONSOLE</p>
+        <h1 class="brand-title">Dashboard<span class="brand-dot">.</span></h1>
+        <p class="brand-sub">THESIS / ARABADJI DMITRII / 2026</p>
       </div>
       <div class="dash-head-right">
         <div id="dash-clock" class="dash-clock">--</div>
@@ -373,9 +373,16 @@
       type: "scatter",
       data: {
         datasets: [
-          { label: "Normal", data: [], backgroundColor: "#65a30d", pointRadius: 3 },
-          { label: "Anomaly", data: [], backgroundColor: "#ef4444", pointRadius: 3 },
-          { label: "Live", data: [], backgroundColor: "#ffb020", pointRadius: 3 },
+          { label: "Normal", data: [], backgroundColor: "#65a30d", pointRadius: 3, order: 30 },
+          { label: "Anomaly", data: [], backgroundColor: "#ef4444", pointRadius: 3, order: 20 },
+          {
+            label: "Live",
+            data: [],
+            backgroundColor: "#ffb020",
+            pointRadius: 4,
+            pointHoverRadius: 5,
+            order: -10,
+          },
         ],
       },
       options: { animation: { duration: 350 } },
@@ -432,6 +439,10 @@
       },
       options: {
         animation: { duration: 350 },
+        interaction: {
+          mode: "index",
+          intersect: false,
+        },
         scales: {
           x: { type: "linear", min: 0, max: 1, title: { display: true, text: "Risk score" } },
           y: { beginAtZero: true, title: { display: true, text: "Count" } },
@@ -478,7 +489,15 @@
     const featureImportanceChart = new Chart(document.getElementById("featureImportanceChart"), {
       type: "bar",
       data: { labels: [], datasets: [{ label: "Importance", data: [], backgroundColor: "#ffb020", borderColor: "#ffb020", borderWidth: 1.5 }] },
-      options: { animation: { duration: 350 }, indexAxis: "y" },
+      options: {
+        animation: { duration: 350 },
+        indexAxis: "y",
+        interaction: {
+          mode: "nearest",
+          axis: "y",
+          intersect: false,
+        },
+      },
     });
 
     function updateKpi() {
