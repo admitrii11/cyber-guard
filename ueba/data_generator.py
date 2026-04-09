@@ -33,24 +33,65 @@ def generate_dataset(n_normal: int = 8000, n_anomaly: int = 500) -> pd.DataFrame
     # ----------------------------
     # 1) Генерация нормальных сессий (label=0)
     # ----------------------------
-    # clicks_per_minute: вокруг 8, std=3
-    normal_clicks_per_minute = np.random.normal(loc=8, scale=3, size=n_normal)
+    # Чтобы модель лучше распознавала "реальное" нормальное поведение в ранние моменты,
+    # делим нормальные сессии на 3 типа:
+    # - 60%: полные рабочие сессии;
+    # - 25%: короткие сессии;
+    # - 15%: очень короткие (cold start).
+    full_count = int(round(n_normal * 0.60))
+    short_count = int(round(n_normal * 0.25))
+    very_short_count = n_normal - full_count - short_count
 
-    # avg_time_between_clicks_sec: вокруг 7, std=2
-    normal_avg_time_between_clicks = np.random.normal(loc=7, scale=2, size=n_normal)
+    # 1.a) Полные сессии: 20-40 мин, 8-12 cpm, 4-7 страниц, 2-5 MB.
+    full_clicks_per_minute = np.random.uniform(8.0, 12.0, size=full_count)
+    full_avg_time_between_clicks = np.random.normal(loc=7.0, scale=1.5, size=full_count)
+    full_unique_pages = np.random.randint(4, 8, size=full_count)
+    full_sensitive_access = np.random.poisson(lam=0.4, size=full_count)
+    full_session_duration = np.random.uniform(20.0, 40.0, size=full_count)
+    full_data_downloaded = np.random.uniform(2.0, 5.0, size=full_count)
 
-    # unique_pages_visited: вокруг 5, std=2, затем округляем до целых
-    normal_unique_pages = np.random.normal(loc=5, scale=2, size=n_normal)
-    normal_unique_pages = np.round(normal_unique_pages).astype(int)
+    # 1.b) Короткие сессии: 1-5 мин, 3-8 cpm, 2-4 страницы, 0-2 MB.
+    short_clicks_per_minute = np.random.uniform(3.0, 8.0, size=short_count)
+    short_avg_time_between_clicks = np.random.normal(loc=8.0, scale=2.0, size=short_count)
+    short_unique_pages = np.random.randint(2, 5, size=short_count)
+    short_sensitive_access = np.random.poisson(lam=0.2, size=short_count)
+    short_session_duration = np.random.uniform(1.0, 5.0, size=short_count)
+    short_data_downloaded = np.random.uniform(0.0, 2.0, size=short_count)
 
-    # sensitive_pages_accessed: в основном 0, иногда 1 (Poisson, lam=0.3)
-    normal_sensitive_access = np.random.poisson(lam=0.3, size=n_normal)
+    # 1.c) Очень короткие (cold start): 0.1-1 мин, 2-6 cpm, 1-2 страницы, 0-0.5 MB.
+    # sensitive_pages_accessed фиксируем в 0 по требованию.
+    very_short_clicks_per_minute = np.random.uniform(2.0, 6.0, size=very_short_count)
+    very_short_avg_time_between_clicks = np.random.normal(
+        loc=9.0, scale=2.0, size=very_short_count
+    )
+    very_short_unique_pages = np.random.randint(1, 3, size=very_short_count)
+    very_short_sensitive_access = np.zeros(very_short_count, dtype=int)
+    very_short_session_duration = np.random.uniform(0.1, 1.0, size=very_short_count)
+    very_short_data_downloaded = np.random.uniform(0.0, 0.5, size=very_short_count)
 
-    # session_duration_min: вокруг 25, std=10
-    normal_session_duration = np.random.normal(loc=25, scale=10, size=n_normal)
-
-    # data_downloaded_mb: вокруг 2, std=1.5
-    normal_data_downloaded = np.random.normal(loc=2, scale=1.5, size=n_normal)
+    # Объединяем все подтипы нормальных сессий в единые массивы признаков.
+    normal_clicks_per_minute = np.concatenate(
+        [full_clicks_per_minute, short_clicks_per_minute, very_short_clicks_per_minute]
+    )
+    normal_avg_time_between_clicks = np.concatenate(
+        [
+            full_avg_time_between_clicks,
+            short_avg_time_between_clicks,
+            very_short_avg_time_between_clicks,
+        ]
+    )
+    normal_unique_pages = np.concatenate(
+        [full_unique_pages, short_unique_pages, very_short_unique_pages]
+    )
+    normal_sensitive_access = np.concatenate(
+        [full_sensitive_access, short_sensitive_access, very_short_sensitive_access]
+    )
+    normal_session_duration = np.concatenate(
+        [full_session_duration, short_session_duration, very_short_session_duration]
+    )
+    normal_data_downloaded = np.concatenate(
+        [full_data_downloaded, short_data_downloaded, very_short_data_downloaded]
+    )
 
     # ----------------------------
     # 2) Генерация аномальных сессий (label=1)

@@ -978,15 +978,13 @@
       liveRiskChart.update();
     }
 
-    function appendLivePcaPoint(score) {
-      // Упрощение по требованию:
-      // - если score > 0.5, кладем точку рядом с "аномальным" кластером;
-      // - иначе рядом с "нормальным".
-      const aroundAnomaly = score > 0.5;
-      const baseX = aroundAnomaly ? 2.0 : -2.0;
-      const baseY = aroundAnomaly ? 2.0 : -2.0;
-      const x = baseX + (Math.random() - 0.5) * 1.8;
-      const y = baseY + (Math.random() - 0.5) * 1.8;
+    function appendLivePcaPoint(event) {
+      // Живые точки добавляем только по real-time PCA-координатам,
+      // рассчитанным на backend из реальных признаков сессии.
+      const point = event?.pca_point;
+      const x = Number(point?.x);
+      const y = Number(point?.y);
+      if (!Number.isFinite(x) || !Number.isFinite(y)) return;
 
       const live = pcaChart.data.datasets[2].data;
       live.push({ x, y });
@@ -1020,7 +1018,7 @@
 
       if (event.type === "ueba_update") {
         updateLiveSessionRisk(event);
-        appendLivePcaPoint(Number(event.score ?? 0));
+        appendLivePcaPoint(event);
         addLiveEvent(event);
         return;
       }

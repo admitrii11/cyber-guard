@@ -331,6 +331,7 @@ def train_and_evaluate() -> None:
     model_path = data_dir / "isolation_forest.pkl"
     scaler_path = data_dir / "scaler.pkl"
     minmax_scaler_path = data_dir / "minmax_scaler.pkl"
+    pca_model_path = data_dir / "pca_model.pkl"
 
     joblib.dump(model, model_path)
     joblib.dump(scaler, scaler_path)
@@ -398,6 +399,9 @@ def train_and_evaluate() -> None:
         json.dumps(pca_projection, indent=2, ensure_ascii=False),
         encoding="utf-8",
     )
+    # Сохраняем PCA, чтобы live-точки на dashboard строились из реальных признаков,
+    # а не из эвристики/рандома.
+    joblib.dump(pca, pca_model_path)
 
     # 12.e) threshold_analysis.json
     threshold_analysis: list[dict[str, float]] = []
@@ -492,6 +496,7 @@ def train_and_evaluate() -> None:
         model_path,
         scaler_path,
         minmax_scaler_path,
+        pca_model_path,
         test_scores_path,
         roc_curve_path,
         pr_curve_path,

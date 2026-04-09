@@ -61,6 +61,7 @@ app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 isolation_forest_model: Any = None
 scaler: Any = None
 minmax_scaler: Any = None
+pca_model: Any = None
 
 ml_metrics: dict[str, Any] = {}
 feature_importance: list[dict[str, Any]] = []
@@ -190,8 +191,13 @@ async def _compute_ueba_for_session(session_id: str) -> dict[str, Any]:
     actions: list[dict[str, Any]] = session["actions"]
     now = datetime.now()
 
-    # Если действий слишком мало, score считаем низким (недостаточно данных).
-    if len(actions) < 3:
+    session_duration_sec = max((now - session["start_time"]).total_seconds(), 0.0)
+
+    # Warm-up режим:
+    # - пока сессии < 5 секунд или действий < 2,
+    #   считаем риск нейтрально-низким и НЕ гоняем модель.
+    # Это убирает ложные всплески на "пустых" данных старта.
+    if session_duration_sec < 5.0 or len(actions) < 2:
         score = 0.1
         session["last_risk"] = score
 
@@ -210,24 +216,34 @@ async def _compute_ueba_for_session(session_id: str) -> dict[str, Any]:
     action_times = [item["timestamp"] for item in actions if isinstance(item.get("timestamp"), datetime)]
     action_times.sort()
 
-    # clicks_per_minute: число действий за последнюю минуту.
-    one_minute_ago = now - timedelta(minutes=1)
-    clicks_last_minute = sum(
-        1
-        for item in actions
-        if isinstance(item.get("timestamp"), datetime) and item["timestamp"] >= one_minute_ago
-    )
+    # clicks_per_minute:
+    # - для очень коротких сессий (< 30 сек) берем окно 10 сек и масштабируем * 6;
+    # - иначе используем фактическую среднюю частоту действий за сессию.
+    # В любом случае гарантируем нижнюю границу 1.0 (без нулей).
+    if session_duration_sec < 30.0:
+        ten_seconds_ago = now - timedelta(seconds=10)
+        clicks_last_10_sec = sum(
+            1
+            for item in actions
+            if isinstance(item.get("timestamp"), datetime) and item["timestamp"] >= ten_seconds_ago
+        )
+        clicks_per_minute = max(float(clicks_last_10_sec) * 6.0, 1.0)
+    else:
+        session_duration_min_actual = max(session_duration_sec / 60.0, 1e-6)
+        actual_clicks_per_minute = len(actions) / session_duration_min_actual
+        clicks_per_minute = max(float(actual_clicks_per_minute), 1.0)
 
     # avg_time_between_clicks_sec: средняя пауза между последовательными действиями.
-    # Если временных точек < 2, ставим 0.0.
+    # Если временных точек < 2, ставим 7.0 (типичный baseline из синтетики),
+    # а не 0.0, чтобы не имитировать "сверхбыстрые клики".
     if len(action_times) >= 2:
         deltas = [
             (action_times[i] - action_times[i - 1]).total_seconds()
             for i in range(1, len(action_times))
         ]
-        avg_time_between_clicks_sec = float(np.mean(deltas)) if deltas else 0.0
+        avg_time_between_clicks_sec = float(np.mean(deltas)) if deltas else 7.0
     else:
-        avg_time_between_clicks_sec = 0.0
+        avg_time_between_clicks_sec = 7.0
 
     # unique_pages_visited: число уникальных target.
     targets = [_safe_target(item.get("target")) for item in actions]
@@ -237,20 +253,21 @@ async def _compute_ueba_for_session(session_id: str) -> dict[str, Any]:
     sensitive_targets = {"admin", "export", "users"}
     sensitive_pages_accessed = sum(1 for target in targets if target in sensitive_targets)
 
-    # session_duration_min: длительность сессии в минутах.
-    session_duration_min = max(
-        (now - session["start_time"]).total_seconds() / 60.0,
-        0.0,
-    )
+    # session_duration_min: даем нижнюю границу 0.5 мин,
+    # чтобы ранние сессии не превращались в "почти нули".
+    session_duration_min = max(session_duration_sec / 60.0, 0.5)
 
-    # data_downloaded_mb: условно считаем, что каждый action_type=export = 10 МБ.
-    export_actions_count = sum(
-        1 for item in actions if str(item.get("action_type", "")).strip().lower() == "export"
+    # data_downloaded_mb: учитываем и download, и export.
+    # Для лучшего совпадения с синтетикой считаем 5 MB на действие.
+    transfer_actions_count = sum(
+        1
+        for item in actions
+        if str(item.get("action_type", "")).strip().lower() in {"download", "export"}
     )
-    data_downloaded_mb = export_actions_count * 10.0
+    data_downloaded_mb = float(transfer_actions_count) * 5.0
 
     features = {
-        "clicks_per_minute": float(clicks_last_minute),
+        "clicks_per_minute": float(clicks_per_minute),
         "avg_time_between_clicks_sec": float(avg_time_between_clicks_sec),
         "unique_pages_visited": float(unique_pages_visited),
         "sensitive_pages_accessed": float(sensitive_pages_accessed),
@@ -283,6 +300,13 @@ async def _compute_ueba_for_session(session_id: str) -> dict[str, Any]:
     score = float(minmax_scaler.transform(np.array([[risk_raw]])).ravel()[0])
     score = float(np.clip(score, 0.0, 1.0))
 
+    # Если PCA-модель доступна, вычисляем real-time 2D-проекцию live-сессии.
+    # Это обеспечивает "желтые точки" из реальных признаков, без рандома.
+    pca_point: dict[str, float] | None = None
+    if pca_model is not None:
+        projected = pca_model.transform(scaled_features)[0]
+        pca_point = {"x": float(projected[0]), "y": float(projected[1])}
+
     session["last_risk"] = score
 
     event = {
@@ -291,6 +315,7 @@ async def _compute_ueba_for_session(session_id: str) -> dict[str, Any]:
         "user": session["username"],
         "score": score,
         "features": features,
+        "pca_point": pca_point,
         "timestamp": now.isoformat(),
     }
     await broadcast_to_dashboards(event)
@@ -333,7 +358,7 @@ async def startup_event() -> None:
     Загружаем ML-артефакты и JSON-данные при старте приложения.
     Также запускаем фоновую UEBA-задачу.
     """
-    global isolation_forest_model, scaler, minmax_scaler
+    global isolation_forest_model, scaler, minmax_scaler, pca_model
     global ml_metrics, feature_importance, test_scores_data, roc_curve_data, pca_projection_data
     global pr_curve_data, threshold_analysis_data
     global ueba_background_task
@@ -341,10 +366,12 @@ async def startup_event() -> None:
     isolation_forest_path = DATA_DIR / "isolation_forest.pkl"
     scaler_path = DATA_DIR / "scaler.pkl"
     minmax_scaler_path = DATA_DIR / "minmax_scaler.pkl"
+    pca_model_path = DATA_DIR / "pca_model.pkl"
 
     isolation_forest_model = _load_joblib_file(isolation_forest_path, default=None)
     scaler = _load_joblib_file(scaler_path, default=None)
     minmax_scaler = _load_joblib_file(minmax_scaler_path, default=None)
+    pca_model = _load_joblib_file(pca_model_path, default=None)
 
     ml_metrics = _load_json_file(DATA_DIR / "metrics.json", {})
     feature_importance = _load_json_file(DATA_DIR / "feature_importance.json", [])

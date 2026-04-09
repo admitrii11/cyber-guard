@@ -1,32 +1,32 @@
 [
   {
-    "feature": "sensitive_pages_accessed",
-    "importance": 0.14517419227058181,
-    "std": 0.01009327466369166
-  },
-  {
     "feature": "data_downloaded_mb",
-    "importance": 0.10921857461089916,
-    "std": 0.012542940770469514
-  },
-  {
-    "feature": "clicks_per_minute",
-    "importance": 0.07565400590914612,
-    "std": 0.011189227272150411
-  },
-  {
-    "feature": "avg_time_between_clicks_sec",
-    "importance": 0.05665836389524661,
-    "std": 0.010346746332860573
+    "importance": 0.25047584278353174,
+    "std": 0.006474280953645393
   },
   {
     "feature": "session_duration_min",
-    "importance": 0.055111466242705354,
-    "std": 0.01487593390866527
+    "importance": 0.24640323847771786,
+    "std": 0.009011567328571057
+  },
+  {
+    "feature": "clicks_per_minute",
+    "importance": 0.17556196655880602,
+    "std": 0.006913805204254816
+  },
+  {
+    "feature": "sensitive_pages_accessed",
+    "importance": 0.16064642679094568,
+    "std": 0.010465034971305489
   },
   {
     "feature": "unique_pages_visited",
-    "importance": 0.03731472015049251,
-    "std": 0.0070327932568466965
+    "importance": 0.11818195087189824,
+    "std": 0.007476526684780471
+  },
+  {
+    "feature": "avg_time_between_clicks_sec",
+    "importance": 0.08295312405208445,
+    "std": 0.012624480577405622
   }
 ]
