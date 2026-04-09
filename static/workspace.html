@@ -4,37 +4,58 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>IAM Guardian Workspace</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Serif:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/style.css" />
 </head>
 <body>
-  <div class="container">
+  <div class="workspace-shell">
     <header class="workspace-topbar">
-      <div>
-        <h1>🛡️ IAM Guardian Workspace</h1>
+      <div class="workspace-left-tag">
+        CYBER GUARD <span class="sep">│</span> WORKSPACE
       </div>
 
-      <div class="trust-box">
-        <div id="trust-label" class="trust-label">Trust Level: 100%</div>
-        <div class="trust-progress-wrap">
-          <div id="trust-progress" class="trust-progress" style="width: 100%;"></div>
+      <div id="workspace-session-line" class="workspace-session-line">
+        SESSION: -- · USER: -- · TIME: --
+      </div>
+
+      <div class="workspace-right">
+        <div id="trust-wrap" class="trust-gauge-wrap trust-high">
+          <div id="trust-progress" class="trust-ring">
+            <span id="trust-value" class="trust-value">100</span>
+          </div>
+          <div class="trust-meta">
+            <div id="trust-label" class="trust-label">TRUST LEVEL</div>
+            <div id="trust-status-dot" class="trust-anomaly hidden">▲ ANOMALY</div>
+          </div>
         </div>
-        <div id="trust-status-dot" class="trust-status-dot">🟢</div>
+        <button id="logout-btn" class="logout-text-btn" type="button">LOGOUT</button>
       </div>
-
-      <button id="logout-btn" class="btn btn-primary" type="button">Logout</button>
     </header>
 
     <main class="workspace-main">
       <aside class="workspace-sidebar">
-        <button class="tab tab-active sidebar-tab" data-tab="dashboard" type="button">📊 Dashboard</button>
-        <button class="tab sidebar-tab" data-tab="documents" type="button">📄 Documents</button>
-        <button class="tab sidebar-tab" data-tab="settings" type="button">⚙️ Settings</button>
-        <button class="tab sidebar-tab" data-tab="admin" type="button">🔒 Admin Panel (Sensitive)</button>
+        <button class="tab tab-active sidebar-tab" data-tab="dashboard" type="button"><span class="num">01</span><span class="txt">Dashboard</span></button>
+        <button class="tab sidebar-tab" data-tab="documents" type="button"><span class="num">02</span><span class="txt">Documents</span></button>
+        <button class="tab sidebar-tab" data-tab="settings" type="button"><span class="num">03</span><span class="txt">Settings</span></button>
+        <button class="tab sidebar-tab" data-tab="admin" type="button"><span class="num">04</span><span class="txt">Admin Panel</span></button>
+
+        <div class="sidebar-bottom">
+          <div>SESSION ACTIVE</div>
+          <div id="sidebar-uptime">UPTIME: 00:00:00</div>
+          <div id="sidebar-events">EVENTS: 0</div>
+        </div>
       </aside>
 
       <section class="workspace-content">
         <div id="tab-dashboard" class="content-panel">
-          <h2>Dashboard</h2>
+          <div class="panel-header">
+            <span class="panel-num">01</span>
+            <span class="panel-line"></span>
+            <span class="panel-title">DASHBOARD</span>
+            <span class="panel-line"></span>
+          </div>
           <div class="widgets-grid">
             <div class="widget-card">
               <h3>Revenue</h3>
@@ -52,12 +73,22 @@
         </div>
 
         <div id="tab-documents" class="content-panel hidden">
-          <h2>Documents</h2>
+          <div class="panel-header">
+            <span class="panel-num">02</span>
+            <span class="panel-line"></span>
+            <span class="panel-title">DOCUMENTS</span>
+            <span class="panel-line"></span>
+          </div>
           <ul id="documents-list" class="documents-list"></ul>
         </div>
 
         <div id="tab-settings" class="content-panel hidden">
-          <h2>Settings</h2>
+          <div class="panel-header">
+            <span class="panel-num">03</span>
+            <span class="panel-line"></span>
+            <span class="panel-title">SETTINGS</span>
+            <span class="panel-line"></span>
+          </div>
           <div class="settings-list">
             <label><input type="checkbox" class="setting-toggle" /> Enable email alerts</label>
             <label><input type="checkbox" class="setting-toggle" checked /> Auto-save workspace</label>
@@ -67,8 +98,13 @@
         </div>
 
         <div id="tab-admin" class="content-panel hidden">
-          <h2>Admin Panel</h2>
-          <div class="admin-warning">⚠️ Sensitive Area</div>
+          <div class="panel-header">
+            <span class="panel-num">04</span>
+            <span class="panel-line"></span>
+            <span class="panel-title">ADMIN PANEL</span>
+            <span class="panel-line"></span>
+          </div>
+          <div class="admin-warning">[ ! ] SENSITIVE AREA — RESTRICTED ACCESS</div>
           <ul class="admin-list">
             <li>User Management</li>
             <li>System Logs</li>
@@ -84,8 +120,14 @@
 
   <div id="terminate-overlay" class="terminate-overlay hidden">
     <div class="terminate-content">
-      <h1>🚨 SESSION TERMINATED</h1>
-      <p id="terminate-reason">Reason: Anomalous behavior detected</p>
+      <h1 class="terminate-title">[ SESSION TERMINATED ]</h1>
+      <div class="terminate-lines">
+        <div class="terminate-line">&gt; trust_score: <span id="term-score">0.00</span></div>
+        <div class="terminate-line">&gt; reason: <span id="terminate-reason">anomalous_behavior_detected</span></div>
+        <div class="terminate-line">&gt; action: force_logout</div>
+        <div class="terminate-line">&gt; redirect: 3s</div>
+      </div>
+      <div class="terminate-rec"><span class="dot">●</span> REC</div>
     </div>
   </div>
 
@@ -98,37 +140,46 @@
       window.location.href = "/static/auth.html";
     }
 
+    const trustWrap = document.getElementById("trust-wrap");
     const trustLabel = document.getElementById("trust-label");
     const trustProgress = document.getElementById("trust-progress");
+    const trustValue = document.getElementById("trust-value");
     const trustStatusDot = document.getElementById("trust-status-dot");
     const terminateOverlay = document.getElementById("terminate-overlay");
     const terminateReason = document.getElementById("terminate-reason");
+    const termScore = document.getElementById("term-score");
+    const sessionLine = document.getElementById("workspace-session-line");
+    const uptimeEl = document.getElementById("sidebar-uptime");
+    const eventsEl = document.getElementById("sidebar-events");
+    const sessionStartMs = Date.now();
+    let localEventCounter = 0;
 
     // ---------------------------------------------------------
     // 2) Вспомогательные функции UI
     // ---------------------------------------------------------
     function setTrustLevel(trustPercent) {
-      // Ограничиваем значение в диапазон [0, 100], чтобы UI не "ломался".
       const trust = Math.max(0, Math.min(100, Math.round(trustPercent)));
-      trustLabel.textContent = `Trust Level: ${trust}%`;
-      trustProgress.style.width = `${trust}%`;
+      trustValue.textContent = String(trust);
+      trustLabel.textContent = "TRUST LEVEL";
+      trustProgress.style.setProperty("--trust-percent", String(trust));
+      trustWrap.classList.remove("trust-high", "trust-med", "trust-low");
 
-      // Цвета и статус-дот по порогам из задачи:
-      // >70 зеленый, 40-70 оранжевый, <40 красный.
       if (trust > 70) {
-        trustProgress.style.backgroundColor = "#1fae59";
-        trustStatusDot.textContent = "🟢";
+        trustWrap.classList.add("trust-high");
+        trustStatusDot.classList.add("hidden");
       } else if (trust >= 40) {
-        trustProgress.style.backgroundColor = "#f39c12";
-        trustStatusDot.textContent = "🟡";
+        trustWrap.classList.add("trust-med");
+        trustStatusDot.classList.add("hidden");
       } else {
-        trustProgress.style.backgroundColor = "#d93025";
-        trustStatusDot.textContent = "🔴";
+        trustWrap.classList.add("trust-low");
+        trustStatusDot.classList.remove("hidden");
       }
     }
 
     function showTerminateOverlay(reasonText) {
-      terminateReason.textContent = `Reason: ${reasonText || "Anomalous behavior detected"}`;
+      const riskValue = 1 - Number(trustValue.textContent || 0) / 100;
+      termScore.textContent = riskValue.toFixed(2);
+      terminateReason.textContent = String(reasonText || "anomalous_behavior_detected").replaceAll(" ", "_").toLowerCase();
       terminateOverlay.classList.remove("hidden");
 
       // Через 3 секунды завершаем сессию на фронте и уводим на страницу входа.
@@ -143,6 +194,8 @@
     // ---------------------------------------------------------
     async function sendAction(actionType, target) {
       try {
+        localEventCounter += 1;
+        eventsEl.textContent = `EVENTS: ${localEventCounter}`;
         await fetch("/action", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -169,6 +222,19 @@
       settings: document.getElementById("tab-settings"),
       admin: document.getElementById("tab-admin"),
     };
+
+    function updateWorkspaceClockAndMeta() {
+      const now = new Date();
+      const hh = String(now.getHours()).padStart(2, "0");
+      const mm = String(now.getMinutes()).padStart(2, "0");
+      const ss = String(now.getSeconds()).padStart(2, "0");
+      const elapsed = Math.floor((Date.now() - sessionStartMs) / 1000);
+      const upH = String(Math.floor(elapsed / 3600)).padStart(2, "0");
+      const upM = String(Math.floor((elapsed % 3600) / 60)).padStart(2, "0");
+      const upS = String(elapsed % 60).padStart(2, "0");
+      sessionLine.textContent = `SESSION: ${sessionId.slice(0, 6)} · USER: active · TIME: ${hh}:${mm}:${ss}`;
+      uptimeEl.textContent = `UPTIME: ${upH}:${upM}:${upS}`;
+    }
 
     function activateTab(tabName) {
       // Переключаем активный стиль у кнопок.
@@ -244,7 +310,7 @@
 
       const downloadBtn = document.createElement("button");
       downloadBtn.className = "btn";
-      downloadBtn.textContent = "📥 Download";
+      downloadBtn.textContent = "[ DOWNLOAD ]";
       downloadBtn.type = "button";
       downloadBtn.addEventListener("click", async () => {
         await sendAction("click", "download");
@@ -252,7 +318,7 @@
 
       const exportBtn = document.createElement("button");
       exportBtn.className = "btn";
-      exportBtn.textContent = "📤 Export";
+      exportBtn.textContent = "[ EXPORT ]";
       exportBtn.type = "button";
       exportBtn.addEventListener("click", async () => {
         await sendAction("click", "export");
@@ -335,6 +401,8 @@
     // Стартовое вычисление + дальнейший цикл каждые 3 секунды.
     pollUebaScore();
     setInterval(pollUebaScore, 3000);
+    updateWorkspaceClockAndMeta();
+    setInterval(updateWorkspaceClockAndMeta, 1000);
   </script>
 </body>
 </html>

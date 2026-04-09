@@ -4,58 +4,84 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Adaptive IAM Guardian</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Serif:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/style.css" />
 </head>
 <body>
-  <div class="container">
-    <h1>🛡️ Adaptive IAM Guardian</h1>
-    <p>Zero Trust Authentication Demo</p>
-
-    <div>
-      <button id="tab-register" class="tab tab-active" type="button">Register</button>
-      <button id="tab-login" class="tab" type="button">Login</button>
-    </div>
-
-    <form id="register-form" class="form">
-      <label for="register-username">Username</label>
-      <input id="register-username" type="text" required />
-
-      <label for="register-password">Password</label>
-      <input id="register-password" type="password" required />
-
-      <label for="register-email">Email</label>
-      <input id="register-email" type="email" placeholder="demo@example.com" />
-
-      <button class="btn btn-primary" type="submit">Register</button>
-    </form>
-
-    <form id="login-form" class="form hidden">
-      <label for="login-username">Username</label>
-      <input id="login-username" type="text" required />
-
-      <label for="login-password">Password</label>
-      <input id="login-password" type="password" required />
-
-      <button class="btn btn-primary" type="submit">Login</button>
-    </form>
-
-    <div id="mfa-box" class="mfa-box hidden">
-      <label for="mfa-code">Enter code</label>
-      <input id="mfa-code" type="text" placeholder="1234" />
-      <small>Demo code: 1234</small>
-      <button id="mfa-verify-btn" class="btn btn-primary" type="button">Verify</button>
-    </div>
-
-    <div id="result-box" class="result-box hidden">
-      <h3>Authentication Result</h3>
-      <div id="risk-score" class="risk-score">Risk score: --</div>
-      <p id="decision-text">Decision: --</p>
-      <div>
-        <strong>Triggered rules:</strong>
-        <ul id="rules-list" class="rules-list"></ul>
+  <div class="auth-layout">
+    <section class="auth-hero">
+      <div class="auth-hero-topnote">CYBER GUARD / v1.1 / THESIS PROTOTYPE</div>
+      <div class="auth-hero-center">
+        <h1 class="auth-title">
+          ADAPTIVE<br />
+          IDENTITY<br />
+          GUARDIAN<span class="auth-title-dot">.</span>
+        </h1>
+        <p class="auth-subtitle">BACHELOR THESIS · ZERO TRUST ARCHITECTURE · 2026</p>
       </div>
-      <button id="workspace-btn" class="btn btn-primary hidden" type="button">Go to workspace</button>
-    </div>
+      <div class="auth-hero-bottom">
+        <span class="auth-hero-num">01</span>
+        <span class="auth-hero-label">── AUTHENTICATION GATE</span>
+      </div>
+    </section>
+
+    <section class="auth-panel">
+      <div class="auth-panel-inner">
+        <div class="auth-tag">&gt; AUTHENTICATE</div>
+        <h1>Sign in to continue</h1>
+
+        <div class="tabs-row">
+          <button id="tab-register" class="tab tab-active" type="button">REGISTER</button>
+          <span class="tab-divider">│</span>
+          <button id="tab-login" class="tab" type="button">LOGIN</button>
+        </div>
+
+        <form id="register-form" class="form">
+          <label for="register-username">Username</label>
+          <input id="register-username" type="text" required />
+
+          <label for="register-password">Password</label>
+          <input id="register-password" type="password" required />
+
+          <label for="register-email">Email</label>
+          <input id="register-email" type="email" placeholder="demo@example.com" />
+
+          <button class="btn btn-primary" type="submit">AUTHENTICATE →</button>
+        </form>
+
+        <form id="login-form" class="form hidden">
+          <label for="login-username">Username</label>
+          <input id="login-username" type="text" required />
+
+          <label for="login-password">Password</label>
+          <input id="login-password" type="password" required />
+
+          <button class="btn btn-primary" type="submit">AUTHENTICATE →</button>
+        </form>
+
+        <div id="mfa-box" class="mfa-box hidden">
+          <label for="mfa-code">Enter code</label>
+          <input id="mfa-code" type="text" placeholder="1234" />
+          <small>Demo code: 1234</small>
+          <button id="mfa-verify-btn" class="btn btn-primary" type="button">VERIFY</button>
+        </div>
+
+        <div id="result-box" class="result-box hidden">
+          <h3>&gt; Authentication Result</h3>
+          <div id="risk-score" class="risk-score">Risk score: --</div>
+          <p id="decision-text">Decision: --</p>
+          <div>
+            <strong class="mono">Triggered rules:</strong>
+            <ul id="rules-list" class="rules-list"></ul>
+          </div>
+          <button id="workspace-btn" class="btn btn-primary hidden" type="button">GO TO WORKSPACE</button>
+        </div>
+
+        <p class="auth-help">[ESC] cancel · [TAB] navigate</p>
+      </div>
+    </section>
   </div>
 
   <script>

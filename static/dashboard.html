@@ -4,359 +4,66 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Adaptive IAM Guardian Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Serif:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/style.css" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <style>
-    :root {
-      --bg: #0f172a;
-      --panel: #111827;
-      --panel-2: #1f2937;
-      --text: #e5e7eb;
-      --muted: #9ca3af;
-      --green: #22c55e;
-      --orange: #f59e0b;
-      --red: #ef4444;
-      --blue: #3b82f6;
-      --yellow: #facc15;
-      --border: #334155;
-    }
-
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-    }
-
-    .dashboard-container {
-      max-width: 1500px;
-      margin: 0 auto;
-      padding: 20px;
-    }
-
-    .top-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 18px;
-      padding: 16px;
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-    }
-
-    .top-header h1 {
-      margin: 0;
-      font-size: 28px;
-    }
-
-    .top-header p {
-      margin: 6px 0 0;
-      color: var(--muted);
-    }
-
-    .ws-indicator {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-weight: bold;
-    }
-
-    .ws-dot {
-      width: 12px;
-      height: 12px;
-      border-radius: 50%;
-      background: #64748b;
-    }
-
-    .kpi-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 12px;
-      margin-bottom: 18px;
-    }
-
-    .kpi-card {
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 14px;
-      box-shadow: 0 8px 18px rgba(0, 0, 0, 0.25);
-    }
-
-    .kpi-card h3 {
-      margin: 0 0 8px;
-      color: var(--muted);
-      font-size: 14px;
-      font-weight: 600;
-    }
-
-    .kpi-value {
-      font-size: 32px;
-      font-weight: 700;
-    }
-
-    .kpi-red .kpi-value { color: var(--red); }
-    .kpi-orange .kpi-value { color: var(--orange); }
-    .kpi-trend { color: var(--muted); font-size: 13px; margin-top: 6px; }
-
-    .section-card {
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      margin-bottom: 18px;
-      padding: 14px;
-      box-shadow: 0 8px 18px rgba(0, 0, 0, 0.25);
-    }
-
-    .section-card h2 {
-      margin: 0 0 12px;
-      font-size: 22px;
-    }
-
-    .auth-grid {
-      display: grid;
-      grid-template-columns: 2fr 1fr;
-      gap: 12px;
-    }
-
-    .ueba-grid {
-      display: grid;
-      grid-template-columns: 2fr 2fr 1.2fr;
-      gap: 12px;
-    }
-
-    .ml-grid {
-      display: grid;
-      grid-template-columns: 2fr 2fr;
-      gap: 12px;
-    }
-
-    .summary-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 10px;
-    }
-
-    .summary-card {
-      background: #0b1220;
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 12px;
-    }
-
-    .summary-card h4 {
-      margin: 0 0 6px;
-      color: var(--muted);
-      font-size: 13px;
-      font-weight: 600;
-    }
-
-    .summary-value {
-      font-size: 30px;
-      font-weight: 700;
-      line-height: 1;
-    }
-
-    .summary-value.main-metric {
-      color: var(--green);
-      font-size: 42px;
-    }
-
-    .summary-note {
-      margin-top: 10px;
-      color: var(--muted);
-      font-size: 12px;
-    }
-
-    .chart-note {
-      margin-top: 8px;
-      color: var(--muted);
-      font-size: 12px;
-    }
-
-    .confusion-wrap {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .axis-caption {
-      color: var(--muted);
-      font-size: 12px;
-    }
-
-    .confusion-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-    }
-
-    .cm-cell {
-      border-radius: 10px;
-      border: 1px solid var(--border);
-      padding: 10px;
-      min-height: 85px;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      text-align: center;
-    }
-
-    .cm-good {
-      background: rgba(34, 197, 94, 0.16);
-    }
-
-    .cm-warn {
-      background: rgba(245, 158, 11, 0.16);
-    }
-
-    .cm-bad {
-      background: rgba(239, 68, 68, 0.16);
-    }
-
-    .cm-title {
-      font-size: 13px;
-      color: var(--muted);
-      margin-bottom: 6px;
-    }
-
-    .cm-value {
-      font-size: 26px;
-      font-weight: 700;
-      line-height: 1;
-      margin-bottom: 4px;
-    }
-
-    .cm-pct {
-      font-size: 12px;
-      color: var(--text);
-    }
-
-    .chart-card, .table-card, .events-card {
-      background: var(--panel-2);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 12px;
-      min-height: 280px;
-    }
-
-    .chart-card canvas {
-      width: 100% !important;
-      height: 280px !important;
-    }
-
-    .table-scroll {
-      max-height: 320px;
-      overflow: auto;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 13px;
-    }
-
-    th, td {
-      border-bottom: 1px solid var(--border);
-      padding: 8px;
-      text-align: left;
-    }
-
-    th {
-      color: var(--muted);
-      font-weight: 600;
-    }
-
-    .row-allow { background: rgba(34, 197, 94, 0.08); }
-    .row-mfa_required { background: rgba(245, 158, 11, 0.10); }
-    .row-block, .row-invalid_password { background: rgba(239, 68, 68, 0.10); }
-
-    .best-model {
-      background: rgba(34, 197, 94, 0.15);
-      border-left: 4px solid var(--green);
-    }
-
-    .events-list {
-      max-height: 320px;
-      overflow-y: auto;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .event-item {
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 8px;
-      font-size: 13px;
-      background: #0b1220;
-    }
-
-    .event-login { border-left: 4px solid var(--blue); }
-    .event-ueba { border-left: 4px solid var(--yellow); }
-    .event-register { border-left: 4px solid var(--green); }
-    .event-mfa { border-left: 4px solid var(--orange); }
-    .event-terminate { border-left: 4px solid var(--red); background: rgba(239, 68, 68, 0.16); }
-
-    .event-new {
-      animation: fadeIn 0.45s ease;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(8px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    @media (max-width: 1200px) {
-      .kpi-grid { grid-template-columns: repeat(2, 1fr); }
-      .auth-grid, .ueba-grid, .ml-grid { grid-template-columns: 1fr; }
-    }
-  </style>
 </head>
 <body>
-  <div class="dashboard-container">
-    <header class="top-header">
+  <div class="dash-shell">
+    <div class="dash-top-strip"></div>
+    <header class="dash-header">
       <div>
-        <h1>🛡️ Adaptive IAM Guardian — Security Dashboard</h1>
-        <p>Zero Trust Architecture | Real-time Monitoring</p>
+        <h1 class="brand-title">CYBER GUARD<span class="brand-dot">.</span></h1>
+        <p class="brand-sub">ADAPTIVE IAM · BEHAVIORAL ANALYTICS · OPERATIONS CONSOLE</p>
       </div>
-      <div class="ws-indicator">
-        <div id="ws-dot" class="ws-dot"></div>
-        <span id="ws-text">WS: disconnected</span>
+      <div class="dash-head-right">
+        <div id="dash-clock" class="dash-clock">--</div>
+        <div class="ws-line">
+          <span id="ws-dot" class="live-dot offline">○</span>
+          <span id="ws-text">OFFLINE WS://DISCONNECTED</span>
+        </div>
       </div>
     </header>
 
     <section class="kpi-grid">
-      <div class="kpi-card">
-        <h3>Total Logins</h3>
+      <div class="kpi-card kpi-large">
+        <div class="kpi-label">TOTAL EVENTS / ALL TIME</div>
         <div id="kpi-total-logins" class="kpi-value">0</div>
+        <div id="kpi-total-trend" class="kpi-trend">+0 IN LAST HOUR</div>
       </div>
       <div class="kpi-card kpi-red">
-        <h3>Blocked Attempts</h3>
+        <div class="kpi-label">BLOCKED ATTEMPTS</div>
         <div id="kpi-blocked" class="kpi-value">0</div>
+        <div id="kpi-blocked-trend" class="kpi-trend">↑ +0</div>
       </div>
       <div class="kpi-card kpi-orange">
-        <h3>MFA Challenges</h3>
+        <div class="kpi-label">MFA CHALLENGES</div>
         <div id="kpi-mfa" class="kpi-value">0</div>
+        <div id="kpi-mfa-trend" class="kpi-trend">↑ +0</div>
       </div>
       <div class="kpi-card">
-        <h3>Avg Risk Score</h3>
+        <div class="kpi-label">AVG RISK SCORE</div>
         <div id="kpi-avg-risk" class="kpi-value">0.00</div>
-        <div id="kpi-risk-trend" class="kpi-trend">Trend: -</div>
+        <div id="kpi-risk-trend" class="kpi-trend">↓ -0.00</div>
       </div>
     </section>
 
     <section class="section-card">
-      <h2>🔐 Adaptive Authentication</h2>
+      <div class="section-header">
+        <span class="section-num">01</span>
+        <span class="section-divider"></span>
+        <span class="section-title">ADAPTIVE AUTHENTICATION</span>
+        <span class="section-line"></span>
+      </div>
       <div class="auth-grid">
         <div class="chart-card">
-          <h3>Risk Score Timeline</h3>
+          <h3 class="chart-title">&gt; RISK SCORE TIMELINE / LAST 20 EVENTS</h3>
           <canvas id="riskTimelineChart"></canvas>
         </div>
         <div class="table-card">
-          <h3>Recent Login Attempts</h3>
+          <h3 class="chart-title">&gt; RECENT LOGIN ATTEMPTS</h3>
           <div class="table-scroll">
             <table>
               <thead>
@@ -376,132 +83,138 @@
     </section>
 
     <section class="section-card">
-      <h2>🧠 UEBA — Behavioral Analytics</h2>
+      <div class="section-header">
+        <span class="section-num">02</span>
+        <span class="section-divider"></span>
+        <span class="section-title">UEBA / BEHAVIORAL ANALYTICS</span>
+        <span class="section-line"></span>
+      </div>
       <div class="ueba-grid">
         <div class="chart-card">
-          <h3>Behavior Space (PCA)</h3>
+          <h3 class="chart-title">&gt; BEHAVIOR SPACE / PCA PROJECTION</h3>
           <canvas id="pcaChart"></canvas>
         </div>
         <div class="chart-card">
-          <h3>Live Session Risk</h3>
+          <h3 class="chart-title">&gt; LIVE SESSION RISK</h3>
           <canvas id="liveRiskChart"></canvas>
         </div>
         <div class="events-card">
-          <h3>Live Events</h3>
+          <h3 class="chart-title">&gt; LIVE EVENT STREAM</h3>
           <div id="events-list" class="events-list"></div>
         </div>
       </div>
     </section>
 
     <section class="section-card">
-      <h2>📊 ML Model Performance</h2>
+      <div class="section-header">
+        <span class="section-num">03</span>
+        <span class="section-divider"></span>
+        <span class="section-title">ML MODEL PERFORMANCE</span>
+        <span class="section-line"></span>
+      </div>
       <div class="ml-grid">
-        <div class="table-card">
-          <h3>Model Summary</h3>
-          <div class="summary-grid">
-            <div class="summary-card">
-              <h4>F1-Score</h4>
-              <div id="summary-f1" class="summary-value main-metric">-</div>
+        <div class="ml-primary-card">
+          <div class="ml-primary-grid">
+            <div>
+              <div class="ml-primary-title">&gt; PRIMARY METRIC / F1-SCORE</div>
+              <div id="summary-f1" class="ml-primary-value">-</div>
+              <div class="ml-primary-note">RANGE: [0.0 — 1.0] · HIGHER IS BETTER</div>
+              <p id="summary-note" class="summary-note">Model: Isolation Forest | Trained on - samples | Contamination: 0.06</p>
             </div>
-            <div class="summary-card">
-              <h4>Precision</h4>
-              <div id="summary-precision" class="summary-value">-</div>
-            </div>
-            <div class="summary-card">
-              <h4>Recall</h4>
-              <div id="summary-recall" class="summary-value">-</div>
-            </div>
-            <div class="summary-card">
-              <h4>ROC-AUC</h4>
-              <div id="summary-rocauc" class="summary-value">-</div>
-            </div>
-            <div class="summary-card">
-              <h4>Accuracy</h4>
-              <div id="summary-accuracy" class="summary-value">-</div>
-            </div>
-            <div class="summary-card">
-              <h4>Specificity</h4>
-              <div id="summary-specificity" class="summary-value">-</div>
-            </div>
+            <ul class="ml-metric-list">
+              <li><span class="ml-metric-name">PRECISION</span><span class="ml-metric-dots"></span><span id="summary-precision">-</span></li>
+              <li><span class="ml-metric-name">RECALL</span><span class="ml-metric-dots"></span><span id="summary-recall">-</span></li>
+              <li><span class="ml-metric-name">ROC-AUC</span><span class="ml-metric-dots"></span><span id="summary-rocauc">-</span></li>
+              <li><span class="ml-metric-name">ACCURACY</span><span class="ml-metric-dots"></span><span id="summary-accuracy">-</span></li>
+              <li><span class="ml-metric-name">SPECIFICITY</span><span class="ml-metric-dots"></span><span id="summary-specificity">-</span></li>
+            </ul>
           </div>
-          <p id="summary-note" class="summary-note">Model: Isolation Forest | Trained on - samples | Contamination: 0.06</p>
         </div>
+
         <div class="chart-card">
-          <h3>Receiver Operating Characteristic</h3>
+          <h3 class="chart-title">&gt; RECEIVER OPERATING CHARACTERISTIC</h3>
           <canvas id="rocChart"></canvas>
           <p id="roc-auc-text" class="chart-note">AUC = -</p>
         </div>
         <div class="chart-card">
-          <h3>Precision-Recall Curve</h3>
+          <h3 class="chart-title">&gt; PRECISION-RECALL CURVE</h3>
           <canvas id="prChart"></canvas>
           <p id="pr-auc-text" class="chart-note">PR-AUC = -</p>
         </div>
         <div class="chart-card">
-          <h3>Anomaly Score Distribution</h3>
+          <h3 class="chart-title">&gt; ANOMALY SCORE DISTRIBUTION</h3>
           <canvas id="scoreHistogramChart"></canvas>
           <p class="chart-note">Thresholds: &lt;0.3 allow | 0.3-0.7 monitor | &gt;0.7 block</p>
         </div>
         <div class="table-card">
-          <h3>Confusion Matrix</h3>
+          <h3 class="chart-title">&gt; CONFUSION MATRIX</h3>
           <div class="confusion-wrap">
-            <div class="axis-caption">Actual (rows) vs Predicted (columns)</div>
+            <div class="confusion-label-left">ACTUAL</div>
+            <div class="confusion-label-top">PREDICTED</div>
             <div class="confusion-grid">
               <div id="cm-tn" class="cm-cell cm-good">
-                <div class="cm-title">TN</div>
                 <div class="cm-value">-</div>
+                <div class="cm-title">TRUE NEGATIVE</div>
                 <div class="cm-pct">-</div>
               </div>
               <div id="cm-fp" class="cm-cell cm-warn">
-                <div class="cm-title">FP</div>
                 <div class="cm-value">-</div>
+                <div class="cm-title">FALSE POSITIVE</div>
                 <div class="cm-pct">-</div>
               </div>
               <div id="cm-fn" class="cm-cell cm-bad">
-                <div class="cm-title">FN</div>
                 <div class="cm-value">-</div>
+                <div class="cm-title">FALSE NEGATIVE</div>
                 <div class="cm-pct">-</div>
               </div>
               <div id="cm-tp" class="cm-cell cm-good">
-                <div class="cm-title">TP</div>
                 <div class="cm-value">-</div>
+                <div class="cm-title">TRUE POSITIVE</div>
                 <div class="cm-pct">-</div>
               </div>
             </div>
-            <div class="axis-caption">Predicted: [Normal, Anomaly]</div>
           </div>
         </div>
         <div class="chart-card">
-          <h3>Permutation Feature Importance</h3>
+          <h3 class="chart-title">&gt; PERMUTATION FEATURE IMPORTANCE</h3>
           <canvas id="featureImportanceChart"></canvas>
         </div>
         <div class="chart-card">
-          <h3>Threshold Sensitivity Analysis</h3>
+          <h3 class="chart-title">&gt; THRESHOLD SENSITIVITY ANALYSIS</h3>
           <canvas id="thresholdAnalysisChart"></canvas>
         </div>
       </div>
     </section>
   </div>
 
+  <div class="status-bar">
+    <div id="status-health" class="status-item status-good">STATUS: OPERATIONAL</div>
+    <div class="status-item">MODEL: ISOLATION-FOREST v1.1</div>
+    <div id="status-uptime" class="status-item">UPTIME: 00:00:00</div>
+    <div id="status-epm" class="status-item">EVENTS/MIN: 0</div>
+    <div id="status-avg-risk" class="status-item">AVG_RISK: 0.00</div>
+    <div id="status-last-event" class="status-item">LAST_EVENT: --:--:--</div>
+  </div>
+
   <script>
-    // ------------------------------------------------------------------
-    // Глобальное состояние дашборда
-    // ------------------------------------------------------------------
     const state = {
       loginAttempts: [],
-      liveSessionSeries: {}, // session_id -> [{x, y}]
+      liveSessionSeries: {},
       kpi: {
         totalLogins: 0,
         blocked: 0,
         mfa: 0,
         riskHistory: [],
       },
+      feedTimes: [],
+      appStartedAt: Date.now(),
+      wsConnected: false,
+      lastEventIso: null,
     };
 
-    // ------------------------------------------------------------------
-    // DOM элементы
-    // ------------------------------------------------------------------
     const wsDot = document.getElementById("ws-dot");
     const wsText = document.getElementById("ws-text");
+    const dashClock = document.getElementById("dash-clock");
     const loginTableBody = document.getElementById("login-table-body");
     const eventsList = document.getElementById("events-list");
     const rocAucText = document.getElementById("roc-auc-text");
@@ -519,13 +232,38 @@
     const kpiMfa = document.getElementById("kpi-mfa");
     const kpiAvgRisk = document.getElementById("kpi-avg-risk");
     const kpiRiskTrend = document.getElementById("kpi-risk-trend");
+    const kpiTotalTrend = document.getElementById("kpi-total-trend");
+    const kpiBlockedTrend = document.getElementById("kpi-blocked-trend");
+    const kpiMfaTrend = document.getElementById("kpi-mfa-trend");
 
-    // ------------------------------------------------------------------
-    // Вспомогательные функции
-    // ------------------------------------------------------------------
+    const statusHealth = document.getElementById("status-health");
+    const statusUptime = document.getElementById("status-uptime");
+    const statusEpm = document.getElementById("status-epm");
+    const statusAvgRisk = document.getElementById("status-avg-risk");
+    const statusLastEvent = document.getElementById("status-last-event");
+
     function formatTime(isoString) {
       const d = new Date(isoString);
       return d.toLocaleTimeString();
+    }
+
+    function formatDateTimeNow() {
+      const d = new Date();
+      const yy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, "0");
+      const dd = String(d.getDate()).padStart(2, "0");
+      const hh = String(d.getHours()).padStart(2, "0");
+      const mi = String(d.getMinutes()).padStart(2, "0");
+      const ss = String(d.getSeconds()).padStart(2, "0");
+      return `${yy}.${mm}.${dd} ${hh}:${mi}:${ss}`;
+    }
+
+    function formatElapsed(ms) {
+      const s = Math.floor(ms / 1000);
+      const hh = String(Math.floor(s / 3600)).padStart(2, "0");
+      const mm = String(Math.floor((s % 3600) / 60)).padStart(2, "0");
+      const ss = String(s % 60).padStart(2, "0");
+      return `${hh}:${mm}:${ss}`;
     }
 
     function clamp(num, min, max) {
@@ -533,31 +271,59 @@
     }
 
     function decisionColor(decision) {
-      if (decision === "allow") return "#22c55e";
-      if (decision === "mfa_required") return "#f59e0b";
+      if (decision === "allow") return "#65a30d";
+      if (decision === "mfa_required") return "#ffb020";
       if (decision === "block" || decision === "invalid_password") return "#ef4444";
       return "#94a3b8";
-    }
-
-    function eventIcon(type) {
-      if (type === "login_attempt") return "🔐";
-      if (type === "ueba_update") return "🧠";
-      if (type === "register") return "📝";
-      if (type === "mfa_success") return "✅";
-      if (type === "terminate") return "🚨";
-      return "•";
     }
 
     function eventClass(type) {
       if (type === "login_attempt") return "event-login";
       if (type === "ueba_update") return "event-ueba";
-      if (type === "register") return "event-register";
       if (type === "mfa_success") return "event-mfa";
       if (type === "terminate") return "event-terminate";
       return "";
     }
 
-    // Плагин рисует вертикальные пунктирные линии порогов.
+    function updateDashClock() {
+      dashClock.textContent = formatDateTimeNow();
+      statusUptime.textContent = `UPTIME: ${formatElapsed(Date.now() - state.appStartedAt)}`;
+      const avg = state.kpi.riskHistory.length
+        ? state.kpi.riskHistory.reduce((a, b) => a + b, 0) / state.kpi.riskHistory.length
+        : 0;
+      statusAvgRisk.textContent = `AVG_RISK: ${avg.toFixed(2)}`;
+
+      const now = Date.now();
+      state.feedTimes = state.feedTimes.filter((ts) => now - ts <= 60000);
+      statusEpm.textContent = `EVENTS/MIN: ${state.feedTimes.length}`;
+    }
+
+    function setWsUi(isConnected) {
+      state.wsConnected = isConnected;
+      if (isConnected) {
+        wsDot.textContent = "●";
+        wsDot.classList.remove("offline");
+        wsText.textContent = "LIVE WS://CONNECTED";
+        statusHealth.textContent = "STATUS: OPERATIONAL";
+        statusHealth.classList.remove("status-warn");
+        statusHealth.classList.add("status-good");
+      } else {
+        wsDot.textContent = "○";
+        wsDot.classList.add("offline");
+        wsText.textContent = "OFFLINE WS://DISCONNECTED";
+        statusHealth.textContent = "STATUS: DEGRADED";
+        statusHealth.classList.remove("status-good");
+        statusHealth.classList.add("status-warn");
+      }
+    }
+
+    Chart.defaults.font.family = "'IBM Plex Mono', monospace";
+    Chart.defaults.font.size = 11;
+    Chart.defaults.color = "#94a3b8";
+    Chart.defaults.borderColor = "#1f2937";
+    Chart.defaults.scale.grid.color = "rgba(31, 41, 55, 0.4)";
+    Chart.defaults.scale.grid.borderColor = "#1f2937";
+
     const thresholdLinesPlugin = {
       id: "thresholdLinesPlugin",
       afterDraw(chart, _args, pluginOptions) {
@@ -565,7 +331,6 @@
         const xScale = chart.scales.x;
         const yScale = chart.scales.y;
         if (!xScale || !yScale) return;
-
         const ctx = chart.ctx;
         thresholds.forEach((item) => {
           const x = xScale.getPixelForValue(item.value);
@@ -583,9 +348,6 @@
       },
     };
 
-    // ------------------------------------------------------------------
-    // Инициализация графиков Chart.js
-    // ------------------------------------------------------------------
     const riskTimelineChart = new Chart(document.getElementById("riskTimelineChart"), {
       type: "line",
       data: {
@@ -593,18 +355,17 @@
         datasets: [{
           label: "Risk Score",
           data: [],
-          borderColor: "#60a5fa",
-          backgroundColor: "#60a5fa",
+          borderColor: "#ffb020",
+          backgroundColor: "transparent",
+          borderWidth: 1.5,
           tension: 0.35,
-          pointRadius: 5,
+          pointRadius: 0,
           pointBackgroundColor: [],
         }],
       },
       options: {
         animation: { duration: 350 },
-        scales: {
-          y: { min: 0, max: 1 },
-        },
+        scales: { y: { min: 0, max: 1 } },
       },
     });
 
@@ -612,14 +373,12 @@
       type: "scatter",
       data: {
         datasets: [
-          { label: "Normal", data: [], backgroundColor: "rgba(59,130,246,0.75)", pointRadius: 3 },
-          { label: "Anomaly", data: [], backgroundColor: "rgba(239,68,68,0.75)", pointRadius: 3 },
-          { label: "Live", data: [], backgroundColor: "rgba(250,204,21,0.95)", pointRadius: 4 },
+          { label: "Normal", data: [], backgroundColor: "#65a30d", pointRadius: 3 },
+          { label: "Anomaly", data: [], backgroundColor: "#ef4444", pointRadius: 3 },
+          { label: "Live", data: [], backgroundColor: "#ffb020", pointRadius: 3 },
         ],
       },
-      options: {
-        animation: { duration: 350 },
-      },
+      options: { animation: { duration: 350 } },
     });
 
     const liveRiskChart = new Chart(document.getElementById("liveRiskChart"), {
@@ -627,9 +386,7 @@
       data: { labels: [], datasets: [] },
       options: {
         animation: { duration: 350 },
-        scales: {
-          y: { min: 0, max: 1 },
-        },
+        scales: { y: { min: 0, max: 1 } },
       },
     });
 
@@ -637,8 +394,8 @@
       type: "line",
       data: {
         datasets: [
-          { label: "ROC", data: [], borderColor: "#22c55e", backgroundColor: "transparent", pointRadius: 0, tension: 0.15 },
-          { label: "Baseline", data: [{ x: 0, y: 0 }, { x: 1, y: 1 }], borderColor: "#64748b", borderDash: [6, 6], pointRadius: 0 },
+          { label: "ROC", data: [], borderColor: "#ffb020", backgroundColor: "transparent", borderWidth: 1.5, pointRadius: 0, tension: 0.15 },
+          { label: "Baseline", data: [{ x: 0, y: 0 }, { x: 1, y: 1 }], borderColor: "#64748b", borderDash: [6, 6], borderWidth: 1.5, pointRadius: 0 },
         ],
       },
       options: {
@@ -653,18 +410,7 @@
 
     const prChart = new Chart(document.getElementById("prChart"), {
       type: "line",
-      data: {
-        datasets: [
-          {
-            label: "PR",
-            data: [],
-            borderColor: "#38bdf8",
-            backgroundColor: "transparent",
-            pointRadius: 0,
-            tension: 0.15,
-          },
-        ],
-      },
+      data: { datasets: [{ label: "PR", data: [], borderColor: "#ffb020", backgroundColor: "transparent", borderWidth: 1.5, pointRadius: 0, tension: 0.15 }] },
       options: {
         animation: { duration: 350 },
         parsing: false,
@@ -680,28 +426,20 @@
       plugins: [thresholdLinesPlugin],
       data: {
         datasets: [
-          { label: "Normal (label=0)", data: [], backgroundColor: "rgba(59,130,246,0.45)", borderColor: "rgba(59,130,246,0.95)", borderWidth: 1 },
-          { label: "Anomaly (label=1)", data: [], backgroundColor: "rgba(239,68,68,0.45)", borderColor: "rgba(239,68,68,0.95)", borderWidth: 1 },
+          { label: "Normal (label=0)", data: [], backgroundColor: "rgba(101,163,13,0.30)", borderColor: "#65a30d", borderWidth: 1.5 },
+          { label: "Anomaly (label=1)", data: [], backgroundColor: "rgba(239,68,68,0.30)", borderColor: "#ef4444", borderWidth: 1.5 },
         ],
       },
       options: {
         animation: { duration: 350 },
         scales: {
-          x: {
-            type: "linear",
-            min: 0,
-            max: 1,
-            title: { display: true, text: "Risk score" },
-          },
-          y: {
-            beginAtZero: true,
-            title: { display: true, text: "Count" },
-          },
+          x: { type: "linear", min: 0, max: 1, title: { display: true, text: "Risk score" } },
+          y: { beginAtZero: true, title: { display: true, text: "Count" } },
         },
         plugins: {
           thresholdLinesPlugin: {
             thresholds: [
-              { value: 0.3, color: "#f59e0b" },
+              { value: 0.3, color: "#ffb020" },
               { value: 0.7, color: "#ef4444" },
             ],
           },
@@ -714,9 +452,9 @@
       plugins: [thresholdLinesPlugin],
       data: {
         datasets: [
-          { label: "Precision", data: [], borderColor: "#60a5fa", backgroundColor: "transparent", pointRadius: 0, tension: 0.2 },
-          { label: "Recall", data: [], borderColor: "#f59e0b", backgroundColor: "transparent", pointRadius: 0, tension: 0.2 },
-          { label: "F1", data: [], borderColor: "#22c55e", backgroundColor: "transparent", pointRadius: 0, tension: 0.2 },
+          { label: "Precision", data: [], borderColor: "#ffb020", backgroundColor: "transparent", borderWidth: 1.5, pointRadius: 0, tension: 0.2 },
+          { label: "Recall", data: [], borderColor: "#ef4444", backgroundColor: "transparent", borderWidth: 1.5, pointRadius: 0, tension: 0.2 },
+          { label: "F1", data: [], borderColor: "#65a30d", backgroundColor: "transparent", borderWidth: 1.5, pointRadius: 0, tension: 0.2 },
         ],
       },
       options: {
@@ -729,7 +467,7 @@
         plugins: {
           thresholdLinesPlugin: {
             thresholds: [
-              { value: 0.3, color: "#f59e0b" },
+              { value: 0.3, color: "#ffb020" },
               { value: 0.7, color: "#ef4444" },
             ],
           },
@@ -739,19 +477,10 @@
 
     const featureImportanceChart = new Chart(document.getElementById("featureImportanceChart"), {
       type: "bar",
-      data: {
-        labels: [],
-        datasets: [{ label: "Importance", data: [], backgroundColor: "rgba(34,197,94,0.75)" }],
-      },
-      options: {
-        animation: { duration: 350 },
-        indexAxis: "y",
-      },
+      data: { labels: [], datasets: [{ label: "Importance", data: [], backgroundColor: "#ffb020", borderColor: "#ffb020", borderWidth: 1.5 }] },
+      options: { animation: { duration: 350 }, indexAxis: "y" },
     });
 
-    // ------------------------------------------------------------------
-    // KPI и таблицы
-    // ------------------------------------------------------------------
     function updateKpi() {
       kpiTotalLogins.textContent = String(state.kpi.totalLogins);
       kpiBlocked.textContent = String(state.kpi.blocked);
@@ -761,14 +490,18 @@
       const avg = history.length ? history.reduce((a, b) => a + b, 0) / history.length : 0;
       kpiAvgRisk.textContent = avg.toFixed(2);
 
+      kpiTotalTrend.textContent = `+${state.feedTimes.length} IN LAST HOUR`;
+      kpiBlockedTrend.textContent = `↑ +${state.kpi.blocked}`;
+      kpiMfaTrend.textContent = `↑ +${state.kpi.mfa}`;
+
       if (history.length >= 2) {
         const last = history[history.length - 1];
         const prev = history[history.length - 2];
         const delta = last - prev;
         const arrow = delta >= 0 ? "↑" : "↓";
-        kpiRiskTrend.textContent = `Trend: ${arrow} ${Math.abs(delta).toFixed(2)}`;
+        kpiRiskTrend.textContent = `${arrow} ${Math.abs(delta).toFixed(2)}`;
       } else {
-        kpiRiskTrend.textContent = "Trend: -";
+        kpiRiskTrend.textContent = "↓ 0.00";
       }
     }
 
@@ -791,23 +524,44 @@
 
     function addLiveEvent(event) {
       const div = document.createElement("div");
-      div.className = `event-item ${eventClass(event.type)} event-new`;
-      const safeScore = event.risk_score !== undefined ? ` | risk=${Number(event.risk_score).toFixed(2)}` : "";
-      div.textContent = `${eventIcon(event.type)} ${formatTime(event.timestamp || new Date().toISOString())} | ${event.type} | ${event.user || event.session_id || "-"}${safeScore}`;
-      eventsList.prepend(div);
+      div.className = `event-item ${eventClass(event.type)}`;
 
-      // Держим только 15 последних событий.
-      while (eventsList.children.length > 15) {
-        eventsList.removeChild(eventsList.lastChild);
+      const t = formatTime(event.timestamp || new Date().toISOString());
+      const user = (event.user || event.session_id || "-").toString().padEnd(9, " ").slice(0, 9);
+      let line = `${t} `;
+
+      if (event.type === "login_attempt") {
+        const risk = Number(event.risk_score ?? 0).toFixed(2);
+        const decision = (event.decision || "allow").toUpperCase();
+        const arrowColor =
+          decision === "ALLOW" ? "var(--success)" :
+          decision.includes("MFA") ? "var(--accent)" : "var(--critical)";
+        line += `<span class="tag">[LOGIN ]</span> ${user} risk=${risk} <span style="color:${arrowColor}">→ ${decision}</span>`;
+      } else if (event.type === "ueba_update") {
+        const score = Number(event.score ?? 0).toFixed(2);
+        const trust = Math.max(0, Math.round((1 - Number(event.score ?? 0)) * 100));
+        const warn = trust < 40 ? " <span style='color:var(--critical)'>⚠</span>" : "";
+        line += `<span class="tag">[UEBA  ]</span> ${user} score=${score} trust=${trust}${warn}`;
+      } else if (event.type === "mfa_success") {
+        line += `<span class="tag">[MFA   ]</span> ${user} verified`;
+      } else if (event.type === "terminate") {
+        line += `<span class="tag">[TERMI ]</span> ${user} session_killed`;
+      } else if (event.type === "register") {
+        line += `<span class="tag">[REG   ]</span> ${user} registered`;
+      } else {
+        line += `<span class="tag">[INFO  ]</span> ${user}`;
       }
 
-      // Автопрокрутка к верху, где новое событие.
+      div.innerHTML = line;
+      eventsList.prepend(div);
+      while (eventsList.children.length > 40) eventsList.removeChild(eventsList.lastChild);
       eventsList.scrollTop = 0;
+
+      state.feedTimes.push(Date.now());
+      state.lastEventIso = event.timestamp || new Date().toISOString();
+      statusLastEvent.textContent = `LAST_EVENT: ${formatTime(state.lastEventIso)}`;
     }
 
-    // ------------------------------------------------------------------
-    // Работа с данными ML
-    // ------------------------------------------------------------------
     function renderModelSummary(metrics, testScoresCount) {
       const production = metrics?.production || {};
       const defaultMetrics = metrics?.default || {};
@@ -819,10 +573,8 @@
       summaryAccuracy.textContent = Number(defaultMetrics.accuracy ?? 0).toFixed(3);
       summarySpecificity.textContent = Number(defaultMetrics.specificity ?? 0).toFixed(3);
 
-      // Обучение идет в split 80/20, поэтому восстанавливаем train size по test size.
       const estimatedTrainSamples = Math.round((Number(testScoresCount || 0) / 0.2) * 0.8);
-      summaryNote.textContent =
-        `Model: Isolation Forest | Trained on ${estimatedTrainSamples} samples | Contamination: 0.06`;
+      summaryNote.textContent = `Model: Isolation Forest | Trained on ${estimatedTrainSamples} samples | Contamination: 0.06`;
     }
 
     function renderConfusionMatrix(metrics) {
@@ -833,26 +585,23 @@
       const tp = Number(cm?.[1]?.[1] ?? 0);
       const total = Math.max(1, tn + fp + fn + tp);
 
-      const setCell = (id, title, value) => {
+      const setCell = (id, value) => {
         const root = document.getElementById(id);
         if (!root) return;
-        root.querySelector(".cm-title").textContent = title;
         root.querySelector(".cm-value").textContent = String(value);
         root.querySelector(".cm-pct").textContent = `${((value / total) * 100).toFixed(2)}%`;
       };
 
-      setCell("cm-tn", "TN", tn);
-      setCell("cm-fp", "FP", fp);
-      setCell("cm-fn", "FN", fn);
-      setCell("cm-tp", "TP", tp);
+      setCell("cm-tn", tn);
+      setCell("cm-fp", fp);
+      setCell("cm-fn", fn);
+      setCell("cm-tp", tp);
     }
 
     function renderRocChart(rocData) {
       const fpr = rocData?.fpr || [];
       const tpr = rocData?.tpr || [];
-      const points = fpr.map((x, i) => ({ x, y: tpr[i] ?? 0 }));
-
-      rocChart.data.datasets[0].data = points;
+      rocChart.data.datasets[0].data = fpr.map((x, i) => ({ x, y: tpr[i] ?? 0 }));
       rocChart.update();
       rocAucText.textContent = `AUC = ${Number(rocData?.auc ?? 0).toFixed(2)}`;
     }
@@ -860,8 +609,7 @@
     function renderPrChart(prData) {
       const precision = prData?.precision || [];
       const recall = prData?.recall || [];
-      const points = recall.map((x, i) => ({ x, y: precision[i] ?? 0 }));
-      prChart.data.datasets[0].data = points;
+      prChart.data.datasets[0].data = recall.map((x, i) => ({ x, y: precision[i] ?? 0 }));
       prChart.update();
       prAucText.textContent = `PR-AUC = ${Number(prData?.auc ?? 0).toFixed(2)}`;
     }
@@ -877,12 +625,7 @@
         if (Number(item.label) === 1) anomalyBins[idx] += 1;
         else normalBins[idx] += 1;
       });
-
-      const toPoints = (bins) => bins.map((count, i) => ({
-        x: (i + 0.5) * binWidth,
-        y: count,
-      }));
-
+      const toPoints = (bins) => bins.map((count, i) => ({ x: (i + 0.5) * binWidth, y: count }));
       scoreHistogramChart.data.datasets[0].data = toPoints(normalBins);
       scoreHistogramChart.data.datasets[1].data = toPoints(anomalyBins);
       scoreHistogramChart.data.datasets.forEach((dataset) => {
@@ -901,18 +644,9 @@
 
     function renderThresholdAnalysis(items) {
       const rows = [...(items || [])].sort((a, b) => Number(a.threshold) - Number(b.threshold));
-      thresholdAnalysisChart.data.datasets[0].data = rows.map((row) => ({
-        x: Number(row.threshold ?? 0),
-        y: Number(row.precision ?? 0),
-      }));
-      thresholdAnalysisChart.data.datasets[1].data = rows.map((row) => ({
-        x: Number(row.threshold ?? 0),
-        y: Number(row.recall ?? 0),
-      }));
-      thresholdAnalysisChart.data.datasets[2].data = rows.map((row) => ({
-        x: Number(row.threshold ?? 0),
-        y: Number(row.f1 ?? 0),
-      }));
+      thresholdAnalysisChart.data.datasets[0].data = rows.map((row) => ({ x: Number(row.threshold ?? 0), y: Number(row.precision ?? 0) }));
+      thresholdAnalysisChart.data.datasets[1].data = rows.map((row) => ({ x: Number(row.threshold ?? 0), y: Number(row.recall ?? 0) }));
+      thresholdAnalysisChart.data.datasets[2].data = rows.map((row) => ({ x: Number(row.threshold ?? 0), y: Number(row.f1 ?? 0) }));
       thresholdAnalysisChart.update();
     }
 
@@ -929,17 +663,12 @@
       pcaChart.update();
     }
 
-    // ------------------------------------------------------------------
-    // Live-обновления графиков
-    // ------------------------------------------------------------------
     function appendRiskTimeline(event) {
       const labels = riskTimelineChart.data.labels;
       const ds = riskTimelineChart.data.datasets[0];
-
       labels.push(formatTime(event.timestamp || new Date().toISOString()));
       ds.data.push(Number(event.risk_score ?? 0));
       ds.pointBackgroundColor.push(decisionColor(event.decision));
-
       if (labels.length > 20) {
         labels.shift();
         ds.data.shift();
@@ -950,28 +679,21 @@
 
     function updateLiveSessionRisk(event) {
       const sessionId = event.session_id || "unknown";
-      if (!state.liveSessionSeries[sessionId]) {
-        state.liveSessionSeries[sessionId] = [];
-      }
-      state.liveSessionSeries[sessionId].push({
-        x: formatTime(event.timestamp || new Date().toISOString()),
-        y: Number(event.score ?? 0),
-      });
-      if (state.liveSessionSeries[sessionId].length > 25) {
-        state.liveSessionSeries[sessionId].shift();
-      }
+      if (!state.liveSessionSeries[sessionId]) state.liveSessionSeries[sessionId] = [];
+      state.liveSessionSeries[sessionId].push({ x: formatTime(event.timestamp || new Date().toISOString()), y: Number(event.score ?? 0) });
+      if (state.liveSessionSeries[sessionId].length > 25) state.liveSessionSeries[sessionId].shift();
 
-      // Собираем datasets заново, по одной линии на сессию.
       const keys = Object.keys(state.liveSessionSeries);
       liveRiskChart.data.labels = state.liveSessionSeries[keys[0]]?.map((p) => p.x) || [];
       liveRiskChart.data.datasets = keys.map((key, idx) => {
-        const hue = (idx * 67) % 360;
+        const hue = (idx * 43) % 360;
         return {
           label: key,
           data: state.liveSessionSeries[key].map((p) => p.y),
-          borderColor: `hsl(${hue}, 85%, 60%)`,
-          backgroundColor: `hsl(${hue}, 85%, 60%)`,
-          pointRadius: 2,
+          borderColor: idx === 0 ? "#ffb020" : `hsl(${hue}, 70%, 60%)`,
+          backgroundColor: "transparent",
+          borderWidth: 1.5,
+          pointRadius: 0,
           tension: 0.3,
         };
       });
@@ -979,26 +701,19 @@
     }
 
     function appendLivePcaPoint(event) {
-      // Живые точки добавляем только по real-time PCA-координатам,
-      // рассчитанным на backend из реальных признаков сессии.
       const point = event?.pca_point;
       const x = Number(point?.x);
       const y = Number(point?.y);
       if (!Number.isFinite(x) || !Number.isFinite(y)) return;
-
       const live = pcaChart.data.datasets[2].data;
       live.push({ x, y });
       if (live.length > 40) live.shift();
       pcaChart.update();
     }
 
-    // ------------------------------------------------------------------
-    // Обработчик входящих WS-событий
-    // ------------------------------------------------------------------
     function processDashboardEvent(event) {
       if (!event || !event.type) return;
 
-      // Для KPI считаем только login_attempt.
       if (event.type === "login_attempt") {
         state.kpi.totalLogins += 1;
         if (event.decision === "block") state.kpi.blocked += 1;
@@ -1029,7 +744,6 @@
       }
 
       if (event.type === "mfa_success") {
-        // MFA success тоже отражаем в KPI "MFA Challenges" как факт MFA-потока.
         state.kpi.mfa += 1;
         updateKpi();
         addLiveEvent(event);
@@ -1041,9 +755,6 @@
       }
     }
 
-    // ------------------------------------------------------------------
-    // Начальная загрузка данных /api/*
-    // ------------------------------------------------------------------
     async function loadInitialData() {
       const [
         metricsResp,
@@ -1083,44 +794,28 @@
       renderThresholdAnalysis(thresholdData);
       renderPcaBase(pcaData);
 
-      // Инициализируем ленту событий из истории.
       (eventLog || []).slice(-15).forEach((event) => addLiveEvent(event));
     }
 
-    // ------------------------------------------------------------------
-    // Подключение WebSocket к dashboard
-    // ------------------------------------------------------------------
     function connectDashboardWebSocket() {
-      // По условию задачи используем ws://localhost:8000/ws/dashboard.
       const ws = new WebSocket("ws://localhost:8000/ws/dashboard");
 
-      ws.onopen = () => {
-        wsDot.style.background = "#22c55e";
-        wsText.textContent = "WS: connected";
-      };
+      ws.onopen = () => setWsUi(true);
 
       ws.onclose = () => {
-        wsDot.style.background = "#ef4444";
-        wsText.textContent = "WS: disconnected";
-        // Простой авто-reconnect.
+        setWsUi(false);
         setTimeout(connectDashboardWebSocket, 2000);
       };
 
-      ws.onerror = () => {
-        wsDot.style.background = "#ef4444";
-        wsText.textContent = "WS: error";
-      };
+      ws.onerror = () => setWsUi(false);
 
       ws.onmessage = (message) => {
         try {
           const event = JSON.parse(message.data);
-
-          // При первом подключении backend отправляет init_event_log.
           if (event.type === "init_event_log" && Array.isArray(event.events)) {
             event.events.slice(-15).forEach((item) => addLiveEvent(item));
             return;
           }
-
           processDashboardEvent(event);
         } catch (err) {
           console.error("WS parse error:", err);
@@ -1128,15 +823,15 @@
       };
     }
 
-    // ------------------------------------------------------------------
-    // Старт приложения
-    // ------------------------------------------------------------------
     (async function initDashboard() {
       try {
         await loadInitialData();
       } catch (err) {
         console.error("Initial load failed:", err);
       }
+      setWsUi(false);
+      updateDashClock();
+      setInterval(updateDashClock, 1000);
       connectDashboardWebSocket();
     })();
   </script>
