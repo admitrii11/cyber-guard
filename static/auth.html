@@ -1,0 +1,399 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Adaptive IAM Guardian</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <div class="container">
+    <h1>🛡️ Adaptive IAM Guardian</h1>
+    <p>Zero Trust Authentication Demo</p>
+
+    <div>
+      <button id="tab-register" class="tab tab-active" type="button">Register</button>
+      <button id="tab-login" class="tab" type="button">Login</button>
+    </div>
+
+    <form id="register-form" class="form">
+      <label for="register-username">Username</label>
+      <input id="register-username" type="text" required />
+
+      <label for="register-password">Password</label>
+      <input id="register-password" type="password" required />
+
+      <label for="register-email">Email</label>
+      <input id="register-email" type="email" placeholder="demo@example.com" />
+
+      <button class="btn btn-primary" type="submit">Register</button>
+    </form>
+
+    <form id="login-form" class="form hidden">
+      <label for="login-username">Username</label>
+      <input id="login-username" type="text" required />
+
+      <label for="login-password">Password</label>
+      <input id="login-password" type="password" required />
+
+      <button class="btn btn-primary" type="submit">Login</button>
+    </form>
+
+    <div id="mfa-box" class="mfa-box hidden">
+      <label for="mfa-code">Enter code</label>
+      <input id="mfa-code" type="text" placeholder="1234" />
+      <small>Demo code: 1234</small>
+      <button id="mfa-verify-btn" class="btn btn-primary" type="button">Verify</button>
+    </div>
+
+    <div id="result-box" class="result-box hidden">
+      <h3>Authentication Result</h3>
+      <div id="risk-score" class="risk-score">Risk score: --</div>
+      <p id="decision-text">Decision: --</p>
+      <div>
+        <strong>Triggered rules:</strong>
+        <ul id="rules-list" class="rules-list"></ul>
+      </div>
+      <button id="workspace-btn" class="btn btn-primary hidden" type="button">Go to workspace</button>
+    </div>
+  </div>
+
+  <script>
+    // -----------------------------
+    // Управление вкладками Register / Login
+    // -----------------------------
+    const tabRegister = document.getElementById("tab-register");
+    const tabLogin = document.getElementById("tab-login");
+    const registerForm = document.getElementById("register-form");
+    const loginForm = document.getElementById("login-form");
+
+    function activateRegisterTab() {
+      tabRegister.classList.add("tab-active");
+      tabLogin.classList.remove("tab-active");
+      registerForm.classList.remove("hidden");
+      loginForm.classList.add("hidden");
+      hideMfaBox();
+    }
+
+    function activateLoginTab() {
+      tabLogin.classList.add("tab-active");
+      tabRegister.classList.remove("tab-active");
+      loginForm.classList.remove("hidden");
+      registerForm.classList.add("hidden");
+      hideMfaBox();
+    }
+
+    tabRegister.addEventListener("click", activateRegisterTab);
+    tabLogin.addEventListener("click", activateLoginTab);
+
+    // -----------------------------
+    // Блоки UI результата / MFA
+    // -----------------------------
+    const resultBox = document.getElementById("result-box");
+    const riskScoreEl = document.getElementById("risk-score");
+    const decisionTextEl = document.getElementById("decision-text");
+    const rulesListEl = document.getElementById("rules-list");
+    const mfaBox = document.getElementById("mfa-box");
+    const workspaceBtn = document.getElementById("workspace-btn");
+
+    function hideMfaBox() {
+      mfaBox.classList.add("hidden");
+    }
+
+    function showMfaBox() {
+      mfaBox.classList.remove("hidden");
+    }
+
+    function resetResultStyles() {
+      riskScoreEl.classList.remove("risk-low", "risk-medium", "risk-high");
+    }
+
+    function showResult({ riskScore = null, decision = "-", rules = [], level = "medium" }) {
+      resultBox.classList.remove("hidden");
+      resetResultStyles();
+
+      if (riskScore === null || Number.isNaN(riskScore)) {
+        riskScoreEl.textContent = "Risk score: --";
+      } else {
+        riskScoreEl.textContent = `Risk score: ${Number(riskScore).toFixed(2)}`;
+      }
+
+      if (level === "low") riskScoreEl.classList.add("risk-low");
+      if (level === "medium") riskScoreEl.classList.add("risk-medium");
+      if (level === "high") riskScoreEl.classList.add("risk-high");
+
+      decisionTextEl.textContent = `Decision: ${decision}`;
+
+      rulesListEl.innerHTML = "";
+      if (!rules || rules.length === 0) {
+        const li = document.createElement("li");
+        li.textContent = "No triggered rules";
+        rulesListEl.appendChild(li);
+      } else {
+        rules.forEach((rule) => {
+          const li = document.createElement("li");
+          li.textContent = rule;
+          rulesListEl.appendChild(li);
+        });
+      }
+    }
+
+    function enableWorkspaceButton() {
+      workspaceBtn.classList.remove("hidden");
+      workspaceBtn.disabled = false;
+    }
+
+    workspaceBtn.addEventListener("click", () => {
+      window.location.href = "/workspace";
+    });
+
+    // -----------------------------
+    // Биометрия клавиатуры: расчет typing_speed_ms
+    // -----------------------------
+    // Логика:
+    // - На keydown сохраняем timestamp нажатия.
+    // - По разнице между соседними keydown считаем интервалы.
+    // - typing_speed_ms = средний интервал между нажатиями.
+    function createTypingCollector(passwordInput) {
+      const keydownTimes = [];
+
+      passwordInput.addEventListener("keydown", () => {
+        keydownTimes.push(performance.now());
+      });
+
+      // Слушатель keyup вешаем по требованию задачи.
+      // Здесь он нужен только как точка расширения (например, фильтрация спец-клавиш).
+      passwordInput.addEventListener("keyup", () => {
+        // Ничего не делаем: основной сигнал уже собран на keydown.
+      });
+
+      return {
+        getAverageTypingSpeedMs() {
+          if (keydownTimes.length < 2) {
+            // Если данных мало, возвращаем безопасное дефолтное значение.
+            return 200;
+          }
+
+          const intervals = [];
+          for (let i = 1; i < keydownTimes.length; i += 1) {
+            intervals.push(keydownTimes[i] - keydownTimes[i - 1]);
+          }
+
+          const sum = intervals.reduce((acc, value) => acc + value, 0);
+          return sum / intervals.length;
+        },
+        reset() {
+          keydownTimes.length = 0;
+        },
+      };
+    }
+
+    const registerPasswordInput = document.getElementById("register-password");
+    const loginPasswordInput = document.getElementById("login-password");
+    const registerTypingCollector = createTypingCollector(registerPasswordInput);
+    const loginTypingCollector = createTypingCollector(loginPasswordInput);
+
+    // -----------------------------
+    // Register
+    // -----------------------------
+    registerForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      const username = document.getElementById("register-username").value.trim();
+      const password = registerPasswordInput.value;
+      const typingSpeed = registerTypingCollector.getAverageTypingSpeedMs();
+
+      try {
+        const response = await fetch("/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            username,
+            password,
+            email: document.getElementById("register-email").value.trim(),
+            country: "",
+            user_agent: navigator.userAgent,
+            typing_speed_ms: typingSpeed,
+          }),
+        });
+
+        const data = await response.json();
+        if (!response.ok) {
+          showResult({
+            riskScore: null,
+            decision: `Register failed: ${data.message || "Unknown error"}`,
+            rules: [],
+            level: "high",
+          });
+          return;
+        }
+
+        showResult({
+          riskScore: 0,
+          decision: "Registered",
+          rules: [],
+          level: "low",
+        });
+      } catch (error) {
+        showResult({
+          riskScore: null,
+          decision: `Register error: ${error.message}`,
+          rules: [],
+          level: "high",
+        });
+      } finally {
+        registerTypingCollector.reset();
+      }
+    });
+
+    // -----------------------------
+    // Login
+    // -----------------------------
+    let pendingMfaUser = null;
+
+    loginForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      const username = document.getElementById("login-username").value.trim();
+      const password = loginPasswordInput.value;
+      const typingSpeed = loginTypingCollector.getAverageTypingSpeedMs();
+      pendingMfaUser = username;
+
+      try {
+        const response = await fetch("/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            username,
+            password,
+            typing_speed_ms: typingSpeed,
+            user_agent: navigator.userAgent,
+          }),
+        });
+
+        const data = await response.json();
+
+        // 403 = блокировка по риску.
+        if (response.status === 403) {
+          hideMfaBox();
+          workspaceBtn.classList.add("hidden");
+          showResult({
+            riskScore: data.risk_score ?? 1,
+            decision: "Access Denied",
+            rules: data.triggered_rules || [],
+            level: "high",
+          });
+          return;
+        }
+
+        if (!response.ok) {
+          hideMfaBox();
+          workspaceBtn.classList.add("hidden");
+          showResult({
+            riskScore: null,
+            decision: `Login failed: ${data.message || "Unknown error"}`,
+            rules: data.triggered_rules || [],
+            level: "high",
+          });
+          return;
+        }
+
+        // Режим MFA.
+        if (data.need_mfa === true) {
+          showMfaBox();
+          workspaceBtn.classList.add("hidden");
+          showResult({
+            riskScore: data.risk_score ?? 0.5,
+            decision: "mfa_required",
+            rules: data.triggered_rules || [],
+            level: "medium",
+          });
+          return;
+        }
+
+        // Успешный вход без MFA.
+        hideMfaBox();
+        if (data.session_id) {
+          localStorage.setItem("session_id", data.session_id);
+        }
+        enableWorkspaceButton();
+        showResult({
+          riskScore: data.risk_score ?? 0,
+          decision: "allow",
+          rules: [],
+          level: "low",
+        });
+      } catch (error) {
+        hideMfaBox();
+        workspaceBtn.classList.add("hidden");
+        showResult({
+          riskScore: null,
+          decision: `Login error: ${error.message}`,
+          rules: [],
+          level: "high",
+        });
+      } finally {
+        loginTypingCollector.reset();
+      }
+    });
+
+    // -----------------------------
+    // MFA verify
+    // -----------------------------
+    document.getElementById("mfa-verify-btn").addEventListener("click", async () => {
+      const code = document.getElementById("mfa-code").value.trim();
+
+      if (!pendingMfaUser) {
+        showResult({
+          riskScore: null,
+          decision: "No pending MFA user",
+          rules: [],
+          level: "high",
+        });
+        return;
+      }
+
+      try {
+        const response = await fetch("/verify_mfa", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            username: pendingMfaUser,
+            code,
+          }),
+        });
+
+        const data = await response.json();
+        if (!response.ok) {
+          showResult({
+            riskScore: null,
+            decision: `MFA failed: ${data.message || "Invalid code"}`,
+            rules: [],
+            level: "high",
+          });
+          return;
+        }
+
+        if (data.session_id) {
+          localStorage.setItem("session_id", data.session_id);
+        }
+        hideMfaBox();
+        enableWorkspaceButton();
+        showResult({
+          riskScore: 0.2,
+          decision: "mfa_verified",
+          rules: [],
+          level: "low",
+        });
+      } catch (error) {
+        showResult({
+          riskScore: null,
+          decision: `MFA error: ${error.message}`,
+          rules: [],
+          level: "high",
+        });
+      }
+    });
+  </script>
+</body>
+</html>

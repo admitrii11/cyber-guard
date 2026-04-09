@@ -1,0 +1,51 @@
+{
+  "default": {
+    "precision": 0.5154639175257731,
+    "recall": 1.0,
+    "f1": 0.6802721088435374,
+    "accuracy": 0.9447058823529412,
+    "specificity": 0.94125,
+    "confusion_matrix": [
+      [
+        1506,
+        94
+      ],
+      [
+        0,
+        100
+      ]
+    ],
+    "roc_auc": 1.0
+  },
+  "tuned_05": {
+    "precision": 0.7092198581560284,
+    "recall": 1.0,
+    "f1": 0.8298755186721992,
+    "accuracy": 0.9758823529411764,
+    "specificity": 0.974375,
+    "confusion_matrix": [
+      [
+        1559,
+        41
+      ],
+      [
+        0,
+        100
+      ]
+    ],
+    "roc_auc": 1.0
+  },
+  "production": {
+    "precision": 0.9900990099009901,
+    "recall": 1.0,
+    "f1": 0.9950248756218906,
+    "zones": {
+      "normal_in_allowed": 1256,
+      "normal_in_mfa": 343,
+      "normal_in_blocked": 1,
+      "anomaly_in_allowed": 0,
+      "anomaly_in_mfa": 0,
+      "anomaly_in_blocked": 100
+    }
+  }
+}

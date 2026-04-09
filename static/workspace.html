@@ -1,0 +1,340 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>IAM Guardian Workspace</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <div class="container">
+    <header class="workspace-topbar">
+      <div>
+        <h1>🛡️ IAM Guardian Workspace</h1>
+      </div>
+
+      <div class="trust-box">
+        <div id="trust-label" class="trust-label">Trust Level: 100%</div>
+        <div class="trust-progress-wrap">
+          <div id="trust-progress" class="trust-progress" style="width: 100%;"></div>
+        </div>
+        <div id="trust-status-dot" class="trust-status-dot">🟢</div>
+      </div>
+
+      <button id="logout-btn" class="btn btn-primary" type="button">Logout</button>
+    </header>
+
+    <main class="workspace-main">
+      <aside class="workspace-sidebar">
+        <button class="tab tab-active sidebar-tab" data-tab="dashboard" type="button">📊 Dashboard</button>
+        <button class="tab sidebar-tab" data-tab="documents" type="button">📄 Documents</button>
+        <button class="tab sidebar-tab" data-tab="settings" type="button">⚙️ Settings</button>
+        <button class="tab sidebar-tab" data-tab="admin" type="button">🔒 Admin Panel (Sensitive)</button>
+      </aside>
+
+      <section class="workspace-content">
+        <div id="tab-dashboard" class="content-panel">
+          <h2>Dashboard</h2>
+          <div class="widgets-grid">
+            <div class="widget-card">
+              <h3>Revenue</h3>
+              <p id="widget-revenue">$0</p>
+            </div>
+            <div class="widget-card">
+              <h3>Users</h3>
+              <p id="widget-users">0</p>
+            </div>
+            <div class="widget-card">
+              <h3>Activity</h3>
+              <p id="widget-activity">0 events/min</p>
+            </div>
+          </div>
+        </div>
+
+        <div id="tab-documents" class="content-panel hidden">
+          <h2>Documents</h2>
+          <ul id="documents-list" class="documents-list"></ul>
+        </div>
+
+        <div id="tab-settings" class="content-panel hidden">
+          <h2>Settings</h2>
+          <div class="settings-list">
+            <label><input type="checkbox" class="setting-toggle" /> Enable email alerts</label>
+            <label><input type="checkbox" class="setting-toggle" checked /> Auto-save workspace</label>
+            <label><input type="checkbox" class="setting-toggle" /> Dark mode</label>
+            <label><input type="checkbox" class="setting-toggle" checked /> Security notifications</label>
+          </div>
+        </div>
+
+        <div id="tab-admin" class="content-panel hidden">
+          <h2>Admin Panel</h2>
+          <div class="admin-warning">⚠️ Sensitive Area</div>
+          <ul class="admin-list">
+            <li>User Management</li>
+            <li>System Logs</li>
+            <li>
+              Export All Data
+              <button id="export-all-btn" class="btn btn-primary" type="button">Export</button>
+            </li>
+          </ul>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="terminate-overlay" class="terminate-overlay hidden">
+    <div class="terminate-content">
+      <h1>🚨 SESSION TERMINATED</h1>
+      <p id="terminate-reason">Reason: Anomalous behavior detected</p>
+    </div>
+  </div>
+
+  <script>
+    // ---------------------------------------------------------
+    // 1) Проверка session_id и базовая инициализация
+    // ---------------------------------------------------------
+    const sessionId = localStorage.getItem("session_id");
+    if (!sessionId) {
+      window.location.href = "/static/auth.html";
+    }
+
+    const trustLabel = document.getElementById("trust-label");
+    const trustProgress = document.getElementById("trust-progress");
+    const trustStatusDot = document.getElementById("trust-status-dot");
+    const terminateOverlay = document.getElementById("terminate-overlay");
+    const terminateReason = document.getElementById("terminate-reason");
+
+    // ---------------------------------------------------------
+    // 2) Вспомогательные функции UI
+    // ---------------------------------------------------------
+    function setTrustLevel(trustPercent) {
+      // Ограничиваем значение в диапазон [0, 100], чтобы UI не "ломался".
+      const trust = Math.max(0, Math.min(100, Math.round(trustPercent)));
+      trustLabel.textContent = `Trust Level: ${trust}%`;
+      trustProgress.style.width = `${trust}%`;
+
+      // Цвета и статус-дот по порогам из задачи:
+      // >70 зеленый, 40-70 оранжевый, <40 красный.
+      if (trust > 70) {
+        trustProgress.style.backgroundColor = "#1fae59";
+        trustStatusDot.textContent = "🟢";
+      } else if (trust >= 40) {
+        trustProgress.style.backgroundColor = "#f39c12";
+        trustStatusDot.textContent = "🟡";
+      } else {
+        trustProgress.style.backgroundColor = "#d93025";
+        trustStatusDot.textContent = "🔴";
+      }
+    }
+
+    function showTerminateOverlay(reasonText) {
+      terminateReason.textContent = `Reason: ${reasonText || "Anomalous behavior detected"}`;
+      terminateOverlay.classList.remove("hidden");
+
+      // Через 3 секунды завершаем сессию на фронте и уводим на страницу входа.
+      setTimeout(() => {
+        localStorage.removeItem("session_id");
+        window.location.href = "/static/auth.html";
+      }, 3000);
+    }
+
+    // ---------------------------------------------------------
+    // 3) Логирование действий пользователя в /action
+    // ---------------------------------------------------------
+    async function sendAction(actionType, target) {
+      try {
+        await fetch("/action", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            session_id: sessionId,
+            action_type: actionType,
+            target,
+          }),
+        });
+      } catch (error) {
+        // Для демо-проекта просто логируем ошибку в консоль.
+        // В production добавляют retry/буфер событий.
+        console.error("Failed to send action:", error);
+      }
+    }
+
+    // ---------------------------------------------------------
+    // 4) Вкладки sidebar и переключение контента
+    // ---------------------------------------------------------
+    const sidebarTabs = document.querySelectorAll(".sidebar-tab");
+    const panels = {
+      dashboard: document.getElementById("tab-dashboard"),
+      documents: document.getElementById("tab-documents"),
+      settings: document.getElementById("tab-settings"),
+      admin: document.getElementById("tab-admin"),
+    };
+
+    function activateTab(tabName) {
+      // Переключаем активный стиль у кнопок.
+      sidebarTabs.forEach((btn) => {
+        if (btn.dataset.tab === tabName) {
+          btn.classList.add("tab-active");
+        } else {
+          btn.classList.remove("tab-active");
+        }
+      });
+
+      // Показываем только нужную панель.
+      Object.entries(panels).forEach(([name, panel]) => {
+        if (name === tabName) {
+          panel.classList.remove("hidden");
+        } else {
+          panel.classList.add("hidden");
+        }
+      });
+    }
+
+    sidebarTabs.forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const tabName = btn.dataset.tab;
+        activateTab(tabName);
+
+        // Любой клик по вкладке отправляем как action_type="click".
+        await sendAction("click", tabName);
+      });
+    });
+
+    // ---------------------------------------------------------
+    // 5) Генерация fake-данных для Dashboard
+    // ---------------------------------------------------------
+    function randomInt(min, max) {
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    function updateFakeWidgets() {
+      const revenue = randomInt(12000, 98000);
+      const users = randomInt(800, 4500);
+      const activity = randomInt(40, 260);
+
+      document.getElementById("widget-revenue").textContent = `$${revenue.toLocaleString()}`;
+      document.getElementById("widget-users").textContent = users.toLocaleString();
+      document.getElementById("widget-activity").textContent = `${activity} events/min`;
+    }
+
+    updateFakeWidgets();
+    setInterval(updateFakeWidgets, 5000);
+
+    // ---------------------------------------------------------
+    // 6) Документы: список файлов + кнопки Download / Export
+    // ---------------------------------------------------------
+    const fakeFiles = [
+      "Q1_Report.pdf",
+      "Q2_Report.pdf",
+      "HR_Policy.docx",
+      "Roadmap_2026.pptx",
+      "Customer_List.csv",
+      "Security_Audit.xlsx",
+      "Onboarding_Guide.docx",
+      "Architecture_Diagram.vsdx",
+    ];
+
+    const documentsList = document.getElementById("documents-list");
+    fakeFiles.forEach((fileName) => {
+      const li = document.createElement("li");
+      li.className = "document-item";
+
+      const nameSpan = document.createElement("span");
+      nameSpan.textContent = fileName;
+
+      const downloadBtn = document.createElement("button");
+      downloadBtn.className = "btn";
+      downloadBtn.textContent = "📥 Download";
+      downloadBtn.type = "button";
+      downloadBtn.addEventListener("click", async () => {
+        await sendAction("click", "download");
+      });
+
+      const exportBtn = document.createElement("button");
+      exportBtn.className = "btn";
+      exportBtn.textContent = "📤 Export";
+      exportBtn.type = "button";
+      exportBtn.addEventListener("click", async () => {
+        await sendAction("click", "export");
+      });
+
+      const actionsWrap = document.createElement("div");
+      actionsWrap.className = "document-actions";
+      actionsWrap.appendChild(downloadBtn);
+      actionsWrap.appendChild(exportBtn);
+
+      li.appendChild(nameSpan);
+      li.appendChild(actionsWrap);
+      documentsList.appendChild(li);
+    });
+
+    // ---------------------------------------------------------
+    // 7) Settings: логируем переключения как взаимодействия с settings
+    // ---------------------------------------------------------
+    document.querySelectorAll(".setting-toggle").forEach((toggle) => {
+      toggle.addEventListener("change", async () => {
+        await sendAction("click", "settings");
+      });
+    });
+
+    // ---------------------------------------------------------
+    // 8) Admin: кнопка Export All Data
+    // ---------------------------------------------------------
+    document.getElementById("export-all-btn").addEventListener("click", async () => {
+      await sendAction("click", "export");
+      await sendAction("click", "admin");
+    });
+
+    // ---------------------------------------------------------
+    // 9) Logout
+    // ---------------------------------------------------------
+    document.getElementById("logout-btn").addEventListener("click", () => {
+      localStorage.removeItem("session_id");
+      window.location.href = "/static/auth.html";
+    });
+
+    // ---------------------------------------------------------
+    // 10) WebSocket /ws/workspace/{session_id}
+    // ---------------------------------------------------------
+    // Собираем URL с учетом текущего протокола (ws:// или wss://).
+    const wsProtocol = window.location.protocol === "https:" ? "wss" : "ws";
+    const workspaceSocket = new WebSocket(`${wsProtocol}://${window.location.host}/ws/workspace/${sessionId}`);
+
+    workspaceSocket.onmessage = (event) => {
+      try {
+        const payload = JSON.parse(event.data);
+        if (payload.type === "terminate") {
+          showTerminateOverlay(payload.reason);
+        }
+      } catch (error) {
+        console.error("Failed to parse WS message:", error);
+      }
+    };
+
+    // ---------------------------------------------------------
+    // 11) Периодический запрос /compute_ueba/{session_id} каждые 3 секунды
+    // ---------------------------------------------------------
+    async function pollUebaScore() {
+      try {
+        const response = await fetch(`/compute_ueba/${sessionId}`);
+        if (!response.ok) {
+          throw new Error(`UEBA request failed with status ${response.status}`);
+        }
+        const data = await response.json();
+
+        // По условию:
+        // trust = 100 - score * 100
+        const score = Number(data.score ?? 0);
+        const trust = 100 - score * 100;
+        setTrustLevel(trust);
+      } catch (error) {
+        console.error("UEBA polling error:", error);
+      }
+    }
+
+    // Стартовое вычисление + дальнейший цикл каждые 3 секунды.
+    pollUebaScore();
+    setInterval(pollUebaScore, 3000);
+  </script>
+</body>
+</html>

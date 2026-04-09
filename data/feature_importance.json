@@ -1,0 +1,32 @@
+[
+  {
+    "feature": "sensitive_pages_accessed",
+    "importance": 0.14517419227058181,
+    "std": 0.01009327466369166
+  },
+  {
+    "feature": "data_downloaded_mb",
+    "importance": 0.10921857461089916,
+    "std": 0.012542940770469514
+  },
+  {
+    "feature": "clicks_per_minute",
+    "importance": 0.07565400590914612,
+    "std": 0.011189227272150411
+  },
+  {
+    "feature": "avg_time_between_clicks_sec",
+    "importance": 0.05665836389524661,
+    "std": 0.010346746332860573
+  },
+  {
+    "feature": "session_duration_min",
+    "importance": 0.055111466242705354,
+    "std": 0.01487593390866527
+  },
+  {
+    "feature": "unique_pages_visited",
+    "importance": 0.03731472015049251,
+    "std": 0.0070327932568466965
+  }
+]

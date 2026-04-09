@@ -1,0 +1,854 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Adaptive IAM Guardian Dashboard</title>
+  <link rel="stylesheet" href="/static/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: #111827;
+      --panel-2: #1f2937;
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+      --green: #22c55e;
+      --orange: #f59e0b;
+      --red: #ef4444;
+      --blue: #3b82f6;
+      --yellow: #facc15;
+      --border: #334155;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    .dashboard-container {
+      max-width: 1500px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    .top-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 18px;
+      padding: 16px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+    }
+
+    .top-header h1 {
+      margin: 0;
+      font-size: 28px;
+    }
+
+    .top-header p {
+      margin: 6px 0 0;
+      color: var(--muted);
+    }
+
+    .ws-indicator {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: bold;
+    }
+
+    .ws-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #64748b;
+    }
+
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .kpi-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+      box-shadow: 0 8px 18px rgba(0, 0, 0, 0.25);
+    }
+
+    .kpi-card h3 {
+      margin: 0 0 8px;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .kpi-value {
+      font-size: 32px;
+      font-weight: 700;
+    }
+
+    .kpi-red .kpi-value { color: var(--red); }
+    .kpi-orange .kpi-value { color: var(--orange); }
+    .kpi-trend { color: var(--muted); font-size: 13px; margin-top: 6px; }
+
+    .section-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      margin-bottom: 18px;
+      padding: 14px;
+      box-shadow: 0 8px 18px rgba(0, 0, 0, 0.25);
+    }
+
+    .section-card h2 {
+      margin: 0 0 12px;
+      font-size: 22px;
+    }
+
+    .auth-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 12px;
+    }
+
+    .ueba-grid {
+      display: grid;
+      grid-template-columns: 2fr 2fr 1.2fr;
+      gap: 12px;
+    }
+
+    .ml-grid {
+      display: grid;
+      grid-template-columns: 2fr 2fr;
+      gap: 12px;
+    }
+
+    .chart-card, .table-card, .events-card {
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+      min-height: 280px;
+    }
+
+    .chart-card canvas {
+      width: 100% !important;
+      height: 280px !important;
+    }
+
+    .table-scroll {
+      max-height: 320px;
+      overflow: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    th, td {
+      border-bottom: 1px solid var(--border);
+      padding: 8px;
+      text-align: left;
+    }
+
+    th {
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .row-allow { background: rgba(34, 197, 94, 0.08); }
+    .row-mfa_required { background: rgba(245, 158, 11, 0.10); }
+    .row-block, .row-invalid_password { background: rgba(239, 68, 68, 0.10); }
+
+    .best-model {
+      background: rgba(34, 197, 94, 0.15);
+      border-left: 4px solid var(--green);
+    }
+
+    .events-list {
+      max-height: 320px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .event-item {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px;
+      font-size: 13px;
+      background: #0b1220;
+    }
+
+    .event-login { border-left: 4px solid var(--blue); }
+    .event-ueba { border-left: 4px solid var(--yellow); }
+    .event-register { border-left: 4px solid var(--green); }
+    .event-mfa { border-left: 4px solid var(--orange); }
+    .event-terminate { border-left: 4px solid var(--red); background: rgba(239, 68, 68, 0.16); }
+
+    .event-new {
+      animation: fadeIn 0.45s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 1200px) {
+      .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+      .auth-grid, .ueba-grid, .ml-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="dashboard-container">
+    <header class="top-header">
+      <div>
+        <h1>🛡️ Adaptive IAM Guardian — Security Dashboard</h1>
+        <p>Zero Trust Architecture | Real-time Monitoring</p>
+      </div>
+      <div class="ws-indicator">
+        <div id="ws-dot" class="ws-dot"></div>
+        <span id="ws-text">WS: disconnected</span>
+      </div>
+    </header>
+
+    <section class="kpi-grid">
+      <div class="kpi-card">
+        <h3>Total Logins</h3>
+        <div id="kpi-total-logins" class="kpi-value">0</div>
+      </div>
+      <div class="kpi-card kpi-red">
+        <h3>Blocked Attempts</h3>
+        <div id="kpi-blocked" class="kpi-value">0</div>
+      </div>
+      <div class="kpi-card kpi-orange">
+        <h3>MFA Challenges</h3>
+        <div id="kpi-mfa" class="kpi-value">0</div>
+      </div>
+      <div class="kpi-card">
+        <h3>Avg Risk Score</h3>
+        <div id="kpi-avg-risk" class="kpi-value">0.00</div>
+        <div id="kpi-risk-trend" class="kpi-trend">Trend: -</div>
+      </div>
+    </section>
+
+    <section class="section-card">
+      <h2>🔐 Adaptive Authentication</h2>
+      <div class="auth-grid">
+        <div class="chart-card">
+          <h3>Risk Score Timeline</h3>
+          <canvas id="riskTimelineChart"></canvas>
+        </div>
+        <div class="table-card">
+          <h3>Recent Login Attempts</h3>
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Time</th>
+                  <th>User</th>
+                  <th>Country</th>
+                  <th>Risk</th>
+                  <th>Decision</th>
+                </tr>
+              </thead>
+              <tbody id="login-table-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-card">
+      <h2>🧠 UEBA — Behavioral Analytics</h2>
+      <div class="ueba-grid">
+        <div class="chart-card">
+          <h3>Behavior Space (PCA)</h3>
+          <canvas id="pcaChart"></canvas>
+        </div>
+        <div class="chart-card">
+          <h3>Live Session Risk</h3>
+          <canvas id="liveRiskChart"></canvas>
+        </div>
+        <div class="events-card">
+          <h3>Live Events</h3>
+          <div id="events-list" class="events-list"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-card">
+      <h2>📊 ML Model Performance</h2>
+      <div class="ml-grid">
+        <div class="table-card">
+          <h3>Models Comparison</h3>
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Model</th>
+                  <th>Precision</th>
+                  <th>Recall</th>
+                  <th>F1</th>
+                  <th>ROC-AUC</th>
+                </tr>
+              </thead>
+              <tbody id="ml-metrics-body"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="chart-card">
+          <h3>ROC Curve</h3>
+          <canvas id="rocChart"></canvas>
+          <p id="roc-auc-text">AUC = -</p>
+        </div>
+        <div class="chart-card">
+          <h3>Anomaly Score Distribution</h3>
+          <canvas id="scoreHistogramChart"></canvas>
+        </div>
+        <div class="chart-card">
+          <h3>Feature Importance</h3>
+          <canvas id="featureImportanceChart"></canvas>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    // ------------------------------------------------------------------
+    // Глобальное состояние дашборда
+    // ------------------------------------------------------------------
+    const state = {
+      loginAttempts: [],
+      liveSessionSeries: {}, // session_id -> [{x, y}]
+      kpi: {
+        totalLogins: 0,
+        blocked: 0,
+        mfa: 0,
+        riskHistory: [],
+      },
+    };
+
+    // ------------------------------------------------------------------
+    // DOM элементы
+    // ------------------------------------------------------------------
+    const wsDot = document.getElementById("ws-dot");
+    const wsText = document.getElementById("ws-text");
+    const loginTableBody = document.getElementById("login-table-body");
+    const eventsList = document.getElementById("events-list");
+    const mlMetricsBody = document.getElementById("ml-metrics-body");
+    const rocAucText = document.getElementById("roc-auc-text");
+
+    const kpiTotalLogins = document.getElementById("kpi-total-logins");
+    const kpiBlocked = document.getElementById("kpi-blocked");
+    const kpiMfa = document.getElementById("kpi-mfa");
+    const kpiAvgRisk = document.getElementById("kpi-avg-risk");
+    const kpiRiskTrend = document.getElementById("kpi-risk-trend");
+
+    // ------------------------------------------------------------------
+    // Вспомогательные функции
+    // ------------------------------------------------------------------
+    function formatTime(isoString) {
+      const d = new Date(isoString);
+      return d.toLocaleTimeString();
+    }
+
+    function clamp(num, min, max) {
+      return Math.max(min, Math.min(max, num));
+    }
+
+    function decisionColor(decision) {
+      if (decision === "allow") return "#22c55e";
+      if (decision === "mfa_required") return "#f59e0b";
+      if (decision === "block" || decision === "invalid_password") return "#ef4444";
+      return "#94a3b8";
+    }
+
+    function eventIcon(type) {
+      if (type === "login_attempt") return "🔐";
+      if (type === "ueba_update") return "🧠";
+      if (type === "register") return "📝";
+      if (type === "mfa_success") return "✅";
+      if (type === "terminate") return "🚨";
+      return "•";
+    }
+
+    function eventClass(type) {
+      if (type === "login_attempt") return "event-login";
+      if (type === "ueba_update") return "event-ueba";
+      if (type === "register") return "event-register";
+      if (type === "mfa_success") return "event-mfa";
+      if (type === "terminate") return "event-terminate";
+      return "";
+    }
+
+    // ------------------------------------------------------------------
+    // Инициализация графиков Chart.js
+    // ------------------------------------------------------------------
+    const riskTimelineChart = new Chart(document.getElementById("riskTimelineChart"), {
+      type: "line",
+      data: {
+        labels: [],
+        datasets: [{
+          label: "Risk Score",
+          data: [],
+          borderColor: "#60a5fa",
+          backgroundColor: "#60a5fa",
+          tension: 0.35,
+          pointRadius: 5,
+          pointBackgroundColor: [],
+        }],
+      },
+      options: {
+        animation: { duration: 350 },
+        scales: {
+          y: { min: 0, max: 1 },
+        },
+      },
+    });
+
+    const pcaChart = new Chart(document.getElementById("pcaChart"), {
+      type: "scatter",
+      data: {
+        datasets: [
+          { label: "Normal", data: [], backgroundColor: "rgba(59,130,246,0.75)", pointRadius: 3 },
+          { label: "Anomaly", data: [], backgroundColor: "rgba(239,68,68,0.75)", pointRadius: 3 },
+          { label: "Live", data: [], backgroundColor: "rgba(250,204,21,0.95)", pointRadius: 4 },
+        ],
+      },
+      options: {
+        animation: { duration: 350 },
+      },
+    });
+
+    const liveRiskChart = new Chart(document.getElementById("liveRiskChart"), {
+      type: "line",
+      data: { labels: [], datasets: [] },
+      options: {
+        animation: { duration: 350 },
+        scales: {
+          y: { min: 0, max: 1 },
+        },
+      },
+    });
+
+    const rocChart = new Chart(document.getElementById("rocChart"), {
+      type: "line",
+      data: {
+        datasets: [
+          { label: "ROC", data: [], borderColor: "#22c55e", backgroundColor: "transparent", pointRadius: 0, tension: 0.15 },
+          { label: "Baseline", data: [{ x: 0, y: 0 }, { x: 1, y: 1 }], borderColor: "#64748b", borderDash: [6, 6], pointRadius: 0 },
+        ],
+      },
+      options: {
+        animation: { duration: 350 },
+        parsing: false,
+        scales: {
+          x: { type: "linear", min: 0, max: 1, title: { display: true, text: "FPR" } },
+          y: { min: 0, max: 1, title: { display: true, text: "TPR" } },
+        },
+      },
+    });
+
+    const scoreHistogramChart = new Chart(document.getElementById("scoreHistogramChart"), {
+      type: "bar",
+      data: {
+        labels: [],
+        datasets: [
+          { label: "Label 0", data: [], backgroundColor: "rgba(59,130,246,0.55)" },
+          { label: "Label 1", data: [], backgroundColor: "rgba(239,68,68,0.55)" },
+          { label: "Thresholds", type: "line", data: [], borderColor: "#facc15", borderDash: [6, 6], pointRadius: 0, tension: 0 },
+        ],
+      },
+      options: {
+        animation: { duration: 350 },
+        scales: { y: { beginAtZero: true } },
+      },
+    });
+
+    const featureImportanceChart = new Chart(document.getElementById("featureImportanceChart"), {
+      type: "bar",
+      data: {
+        labels: [],
+        datasets: [{ label: "Importance", data: [], backgroundColor: "rgba(34,197,94,0.75)" }],
+      },
+      options: {
+        animation: { duration: 350 },
+        indexAxis: "y",
+      },
+    });
+
+    // ------------------------------------------------------------------
+    // KPI и таблицы
+    // ------------------------------------------------------------------
+    function updateKpi() {
+      kpiTotalLogins.textContent = String(state.kpi.totalLogins);
+      kpiBlocked.textContent = String(state.kpi.blocked);
+      kpiMfa.textContent = String(state.kpi.mfa);
+
+      const history = state.kpi.riskHistory;
+      const avg = history.length ? history.reduce((a, b) => a + b, 0) / history.length : 0;
+      kpiAvgRisk.textContent = avg.toFixed(2);
+
+      if (history.length >= 2) {
+        const last = history[history.length - 1];
+        const prev = history[history.length - 2];
+        const delta = last - prev;
+        const arrow = delta >= 0 ? "↑" : "↓";
+        kpiRiskTrend.textContent = `Trend: ${arrow} ${Math.abs(delta).toFixed(2)}`;
+      } else {
+        kpiRiskTrend.textContent = "Trend: -";
+      }
+    }
+
+    function renderLoginTable() {
+      loginTableBody.innerHTML = "";
+      const rows = state.loginAttempts.slice(-10).reverse();
+      rows.forEach((item) => {
+        const tr = document.createElement("tr");
+        tr.className = `row-${item.decision}`;
+        tr.innerHTML = `
+          <td>${formatTime(item.timestamp)}</td>
+          <td>${item.user || "-"}</td>
+          <td>${item.country || "-"}</td>
+          <td>${Number(item.risk_score ?? 0).toFixed(2)}</td>
+          <td>${item.decision || "-"}</td>
+        `;
+        loginTableBody.appendChild(tr);
+      });
+    }
+
+    function addLiveEvent(event) {
+      const div = document.createElement("div");
+      div.className = `event-item ${eventClass(event.type)} event-new`;
+      const safeScore = event.risk_score !== undefined ? ` | risk=${Number(event.risk_score).toFixed(2)}` : "";
+      div.textContent = `${eventIcon(event.type)} ${formatTime(event.timestamp || new Date().toISOString())} | ${event.type} | ${event.user || event.session_id || "-"}${safeScore}`;
+      eventsList.prepend(div);
+
+      // Держим только 15 последних событий.
+      while (eventsList.children.length > 15) {
+        eventsList.removeChild(eventsList.lastChild);
+      }
+
+      // Автопрокрутка к верху, где новое событие.
+      eventsList.scrollTop = 0;
+    }
+
+    // ------------------------------------------------------------------
+    // Работа с данными ML
+    // ------------------------------------------------------------------
+    function renderMlMetricsTable(metrics) {
+      const rows = [
+        { key: "default", label: "Default" },
+        { key: "tuned_05", label: "Tuned (0.5)" },
+        { key: "production", label: "Production (0.3/0.7)" },
+      ];
+
+      // Выбираем лучшую модель по F1.
+      let bestKey = rows[0].key;
+      let bestF1 = -1;
+      rows.forEach((r) => {
+        const f1 = Number(metrics?.[r.key]?.f1 ?? 0);
+        if (f1 > bestF1) {
+          bestF1 = f1;
+          bestKey = r.key;
+        }
+      });
+
+      mlMetricsBody.innerHTML = "";
+      rows.forEach((r) => {
+        const m = metrics?.[r.key] || {};
+        const tr = document.createElement("tr");
+        if (r.key === bestKey) tr.classList.add("best-model");
+        tr.innerHTML = `
+          <td>${r.label}</td>
+          <td>${Number(m.precision ?? 0).toFixed(3)}</td>
+          <td>${Number(m.recall ?? 0).toFixed(3)}</td>
+          <td>${Number(m.f1 ?? 0).toFixed(3)}</td>
+          <td>${m.roc_auc !== undefined ? Number(m.roc_auc).toFixed(3) : "-"}</td>
+        `;
+        mlMetricsBody.appendChild(tr);
+      });
+    }
+
+    function renderRocChart(rocData) {
+      const fpr = rocData?.fpr || [];
+      const tpr = rocData?.tpr || [];
+      const points = fpr.map((x, i) => ({ x, y: tpr[i] ?? 0 }));
+
+      rocChart.data.datasets[0].data = points;
+      rocChart.update();
+      rocAucText.textContent = `AUC = ${Number(rocData?.auc ?? 0).toFixed(2)}`;
+    }
+
+    function renderHistogram(testScores) {
+      const binCount = 20;
+      const bins = Array.from({ length: binCount }, (_, i) => i / binCount);
+      const labels = bins.map((start) => `${start.toFixed(2)}-${(start + 1 / binCount).toFixed(2)}`);
+
+      const normal = new Array(binCount).fill(0);
+      const anomaly = new Array(binCount).fill(0);
+
+      testScores.forEach((item) => {
+        const score = clamp(Number(item.score ?? 0), 0, 0.999999);
+        const idx = Math.floor(score * binCount);
+        if (Number(item.label) === 1) anomaly[idx] += 1;
+        else normal[idx] += 1;
+      });
+
+      const maxY = Math.max(1, ...normal, ...anomaly);
+      const thresholdLine = labels.map((_, i) => {
+        const center = (i + 0.5) / binCount;
+        if (Math.abs(center - 0.3) < 1 / binCount / 2 || Math.abs(center - 0.7) < 1 / binCount / 2) {
+          return maxY;
+        }
+        return null;
+      });
+
+      scoreHistogramChart.data.labels = labels;
+      scoreHistogramChart.data.datasets[0].data = normal;
+      scoreHistogramChart.data.datasets[1].data = anomaly;
+      scoreHistogramChart.data.datasets[2].data = thresholdLine;
+      scoreHistogramChart.update();
+    }
+
+    function renderFeatureImportance(items) {
+      const sorted = [...(items || [])].sort((a, b) => Number(b.importance) - Number(a.importance));
+      featureImportanceChart.data.labels = sorted.map((x) => x.feature);
+      featureImportanceChart.data.datasets[0].data = sorted.map((x) => Number(x.importance ?? 0));
+      featureImportanceChart.update();
+    }
+
+    function renderPcaBase(points) {
+      const normal = [];
+      const anomaly = [];
+      (points || []).forEach((p) => {
+        const item = { x: Number(p.x ?? 0), y: Number(p.y ?? 0) };
+        if (Number(p.label) === 1) anomaly.push(item);
+        else normal.push(item);
+      });
+      pcaChart.data.datasets[0].data = normal;
+      pcaChart.data.datasets[1].data = anomaly;
+      pcaChart.update();
+    }
+
+    // ------------------------------------------------------------------
+    // Live-обновления графиков
+    // ------------------------------------------------------------------
+    function appendRiskTimeline(event) {
+      const labels = riskTimelineChart.data.labels;
+      const ds = riskTimelineChart.data.datasets[0];
+
+      labels.push(formatTime(event.timestamp || new Date().toISOString()));
+      ds.data.push(Number(event.risk_score ?? 0));
+      ds.pointBackgroundColor.push(decisionColor(event.decision));
+
+      if (labels.length > 20) {
+        labels.shift();
+        ds.data.shift();
+        ds.pointBackgroundColor.shift();
+      }
+      riskTimelineChart.update();
+    }
+
+    function updateLiveSessionRisk(event) {
+      const sessionId = event.session_id || "unknown";
+      if (!state.liveSessionSeries[sessionId]) {
+        state.liveSessionSeries[sessionId] = [];
+      }
+      state.liveSessionSeries[sessionId].push({
+        x: formatTime(event.timestamp || new Date().toISOString()),
+        y: Number(event.score ?? 0),
+      });
+      if (state.liveSessionSeries[sessionId].length > 25) {
+        state.liveSessionSeries[sessionId].shift();
+      }
+
+      // Собираем datasets заново, по одной линии на сессию.
+      const keys = Object.keys(state.liveSessionSeries);
+      liveRiskChart.data.labels = state.liveSessionSeries[keys[0]]?.map((p) => p.x) || [];
+      liveRiskChart.data.datasets = keys.map((key, idx) => {
+        const hue = (idx * 67) % 360;
+        return {
+          label: key,
+          data: state.liveSessionSeries[key].map((p) => p.y),
+          borderColor: `hsl(${hue}, 85%, 60%)`,
+          backgroundColor: `hsl(${hue}, 85%, 60%)`,
+          pointRadius: 2,
+          tension: 0.3,
+        };
+      });
+      liveRiskChart.update();
+    }
+
+    function appendLivePcaPoint(score) {
+      // Упрощение по требованию:
+      // - если score > 0.5, кладем точку рядом с "аномальным" кластером;
+      // - иначе рядом с "нормальным".
+      const aroundAnomaly = score > 0.5;
+      const baseX = aroundAnomaly ? 2.0 : -2.0;
+      const baseY = aroundAnomaly ? 2.0 : -2.0;
+      const x = baseX + (Math.random() - 0.5) * 1.8;
+      const y = baseY + (Math.random() - 0.5) * 1.8;
+
+      const live = pcaChart.data.datasets[2].data;
+      live.push({ x, y });
+      if (live.length > 40) live.shift();
+      pcaChart.update();
+    }
+
+    // ------------------------------------------------------------------
+    // Обработчик входящих WS-событий
+    // ------------------------------------------------------------------
+    function processDashboardEvent(event) {
+      if (!event || !event.type) return;
+
+      // Для KPI считаем только login_attempt.
+      if (event.type === "login_attempt") {
+        state.kpi.totalLogins += 1;
+        if (event.decision === "block") state.kpi.blocked += 1;
+        if (event.decision === "mfa_required") state.kpi.mfa += 1;
+        state.kpi.riskHistory.push(Number(event.risk_score ?? 0));
+        if (state.kpi.riskHistory.length > 100) state.kpi.riskHistory.shift();
+        updateKpi();
+
+        state.loginAttempts.push(event);
+        if (state.loginAttempts.length > 120) state.loginAttempts.shift();
+        renderLoginTable();
+
+        appendRiskTimeline(event);
+        addLiveEvent(event);
+        return;
+      }
+
+      if (event.type === "ueba_update") {
+        updateLiveSessionRisk(event);
+        appendLivePcaPoint(Number(event.score ?? 0));
+        addLiveEvent(event);
+        return;
+      }
+
+      if (event.type === "register") {
+        addLiveEvent(event);
+        return;
+      }
+
+      if (event.type === "mfa_success") {
+        // MFA success тоже отражаем в KPI "MFA Challenges" как факт MFA-потока.
+        state.kpi.mfa += 1;
+        updateKpi();
+        addLiveEvent(event);
+        return;
+      }
+
+      if (event.type === "terminate") {
+        addLiveEvent(event);
+      }
+    }
+
+    // ------------------------------------------------------------------
+    // Начальная загрузка данных /api/*
+    // ------------------------------------------------------------------
+    async function loadInitialData() {
+      const [
+        metricsResp,
+        fiResp,
+        pcaResp,
+        rocResp,
+        scoresResp,
+        eventLogResp,
+      ] = await Promise.all([
+        fetch("/api/ml_metrics"),
+        fetch("/api/feature_importance"),
+        fetch("/api/pca_data"),
+        fetch("/api/roc_data"),
+        fetch("/api/test_scores"),
+        fetch("/api/event_log"),
+      ]);
+
+      const metrics = await metricsResp.json();
+      const featureImportance = await fiResp.json();
+      const pcaData = await pcaResp.json();
+      const rocData = await rocResp.json();
+      const testScores = await scoresResp.json();
+      const eventLog = await eventLogResp.json();
+
+      renderMlMetricsTable(metrics);
+      renderRocChart(rocData);
+      renderHistogram(testScores);
+      renderFeatureImportance(featureImportance);
+      renderPcaBase(pcaData);
+
+      // Инициализируем ленту событий из истории.
+      (eventLog || []).slice(-15).forEach((event) => addLiveEvent(event));
+    }
+
+    // ------------------------------------------------------------------
+    // Подключение WebSocket к dashboard
+    // ------------------------------------------------------------------
+    function connectDashboardWebSocket() {
+      // По условию задачи используем ws://localhost:8000/ws/dashboard.
+      const ws = new WebSocket("ws://localhost:8000/ws/dashboard");
+
+      ws.onopen = () => {
+        wsDot.style.background = "#22c55e";
+        wsText.textContent = "WS: connected";
+      };
+
+      ws.onclose = () => {
+        wsDot.style.background = "#ef4444";
+        wsText.textContent = "WS: disconnected";
+        // Простой авто-reconnect.
+        setTimeout(connectDashboardWebSocket, 2000);
+      };
+
+      ws.onerror = () => {
+        wsDot.style.background = "#ef4444";
+        wsText.textContent = "WS: error";
+      };
+
+      ws.onmessage = (message) => {
+        try {
+          const event = JSON.parse(message.data);
+
+          // При первом подключении backend отправляет init_event_log.
+          if (event.type === "init_event_log" && Array.isArray(event.events)) {
+            event.events.slice(-15).forEach((item) => addLiveEvent(item));
+            return;
+          }
+
+          processDashboardEvent(event);
+        } catch (err) {
+          console.error("WS parse error:", err);
+        }
+      };
+    }
+
+    // ------------------------------------------------------------------
+    // Старт приложения
+    // ------------------------------------------------------------------
+    (async function initDashboard() {
+      try {
+        await loadInitialData();
+      } catch (err) {
+        console.error("Initial load failed:", err);
+      }
+      connectDashboardWebSocket();
+    })();
+  </script>
+</body>
+</html>
