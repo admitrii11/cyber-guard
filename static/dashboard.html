@@ -132,6 +132,108 @@
       gap: 12px;
     }
 
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    .summary-card {
+      background: #0b1220;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+    }
+
+    .summary-card h4 {
+      margin: 0 0 6px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .summary-value {
+      font-size: 30px;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .summary-value.main-metric {
+      color: var(--green);
+      font-size: 42px;
+    }
+
+    .summary-note {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .chart-note {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .confusion-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .axis-caption {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .confusion-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .cm-cell {
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      padding: 10px;
+      min-height: 85px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+    }
+
+    .cm-good {
+      background: rgba(34, 197, 94, 0.16);
+    }
+
+    .cm-warn {
+      background: rgba(245, 158, 11, 0.16);
+    }
+
+    .cm-bad {
+      background: rgba(239, 68, 68, 0.16);
+    }
+
+    .cm-title {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    .cm-value {
+      font-size: 26px;
+      font-weight: 700;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+
+    .cm-pct {
+      font-size: 12px;
+      color: var(--text);
+    }
+
     .chart-card, .table-card, .events-card {
       background: var(--panel-2);
       border: 1px solid var(--border);
@@ -295,34 +397,86 @@
       <h2>📊 ML Model Performance</h2>
       <div class="ml-grid">
         <div class="table-card">
-          <h3>Models Comparison</h3>
-          <div class="table-scroll">
-            <table>
-              <thead>
-                <tr>
-                  <th>Model</th>
-                  <th>Precision</th>
-                  <th>Recall</th>
-                  <th>F1</th>
-                  <th>ROC-AUC</th>
-                </tr>
-              </thead>
-              <tbody id="ml-metrics-body"></tbody>
-            </table>
+          <h3>Model Summary</h3>
+          <div class="summary-grid">
+            <div class="summary-card">
+              <h4>F1-Score</h4>
+              <div id="summary-f1" class="summary-value main-metric">-</div>
+            </div>
+            <div class="summary-card">
+              <h4>Precision</h4>
+              <div id="summary-precision" class="summary-value">-</div>
+            </div>
+            <div class="summary-card">
+              <h4>Recall</h4>
+              <div id="summary-recall" class="summary-value">-</div>
+            </div>
+            <div class="summary-card">
+              <h4>ROC-AUC</h4>
+              <div id="summary-rocauc" class="summary-value">-</div>
+            </div>
+            <div class="summary-card">
+              <h4>Accuracy</h4>
+              <div id="summary-accuracy" class="summary-value">-</div>
+            </div>
+            <div class="summary-card">
+              <h4>Specificity</h4>
+              <div id="summary-specificity" class="summary-value">-</div>
+            </div>
           </div>
+          <p id="summary-note" class="summary-note">Model: Isolation Forest | Trained on - samples | Contamination: 0.06</p>
         </div>
         <div class="chart-card">
-          <h3>ROC Curve</h3>
+          <h3>Receiver Operating Characteristic</h3>
           <canvas id="rocChart"></canvas>
-          <p id="roc-auc-text">AUC = -</p>
+          <p id="roc-auc-text" class="chart-note">AUC = -</p>
+        </div>
+        <div class="chart-card">
+          <h3>Precision-Recall Curve</h3>
+          <canvas id="prChart"></canvas>
+          <p id="pr-auc-text" class="chart-note">PR-AUC = -</p>
         </div>
         <div class="chart-card">
           <h3>Anomaly Score Distribution</h3>
           <canvas id="scoreHistogramChart"></canvas>
+          <p class="chart-note">Thresholds: &lt;0.3 allow | 0.3-0.7 monitor | &gt;0.7 block</p>
+        </div>
+        <div class="table-card">
+          <h3>Confusion Matrix</h3>
+          <div class="confusion-wrap">
+            <div class="axis-caption">Actual (rows) vs Predicted (columns)</div>
+            <div class="confusion-grid">
+              <div id="cm-tn" class="cm-cell cm-good">
+                <div class="cm-title">TN</div>
+                <div class="cm-value">-</div>
+                <div class="cm-pct">-</div>
+              </div>
+              <div id="cm-fp" class="cm-cell cm-warn">
+                <div class="cm-title">FP</div>
+                <div class="cm-value">-</div>
+                <div class="cm-pct">-</div>
+              </div>
+              <div id="cm-fn" class="cm-cell cm-bad">
+                <div class="cm-title">FN</div>
+                <div class="cm-value">-</div>
+                <div class="cm-pct">-</div>
+              </div>
+              <div id="cm-tp" class="cm-cell cm-good">
+                <div class="cm-title">TP</div>
+                <div class="cm-value">-</div>
+                <div class="cm-pct">-</div>
+              </div>
+            </div>
+            <div class="axis-caption">Predicted: [Normal, Anomaly]</div>
+          </div>
         </div>
         <div class="chart-card">
-          <h3>Feature Importance</h3>
+          <h3>Permutation Feature Importance</h3>
           <canvas id="featureImportanceChart"></canvas>
+        </div>
+        <div class="chart-card">
+          <h3>Threshold Sensitivity Analysis</h3>
+          <canvas id="thresholdAnalysisChart"></canvas>
         </div>
       </div>
     </section>
@@ -350,8 +504,15 @@
     const wsText = document.getElementById("ws-text");
     const loginTableBody = document.getElementById("login-table-body");
     const eventsList = document.getElementById("events-list");
-    const mlMetricsBody = document.getElementById("ml-metrics-body");
     const rocAucText = document.getElementById("roc-auc-text");
+    const prAucText = document.getElementById("pr-auc-text");
+    const summaryF1 = document.getElementById("summary-f1");
+    const summaryPrecision = document.getElementById("summary-precision");
+    const summaryRecall = document.getElementById("summary-recall");
+    const summaryRocAuc = document.getElementById("summary-rocauc");
+    const summaryAccuracy = document.getElementById("summary-accuracy");
+    const summarySpecificity = document.getElementById("summary-specificity");
+    const summaryNote = document.getElementById("summary-note");
 
     const kpiTotalLogins = document.getElementById("kpi-total-logins");
     const kpiBlocked = document.getElementById("kpi-blocked");
@@ -395,6 +556,32 @@
       if (type === "terminate") return "event-terminate";
       return "";
     }
+
+    // Плагин рисует вертикальные пунктирные линии порогов.
+    const thresholdLinesPlugin = {
+      id: "thresholdLinesPlugin",
+      afterDraw(chart, _args, pluginOptions) {
+        const thresholds = pluginOptions?.thresholds || [];
+        const xScale = chart.scales.x;
+        const yScale = chart.scales.y;
+        if (!xScale || !yScale) return;
+
+        const ctx = chart.ctx;
+        thresholds.forEach((item) => {
+          const x = xScale.getPixelForValue(item.value);
+          if (!Number.isFinite(x)) return;
+          ctx.save();
+          ctx.strokeStyle = item.color;
+          ctx.lineWidth = 1.5;
+          ctx.setLineDash([6, 6]);
+          ctx.beginPath();
+          ctx.moveTo(x, yScale.top);
+          ctx.lineTo(x, yScale.bottom);
+          ctx.stroke();
+          ctx.restore();
+        });
+      },
+    };
 
     // ------------------------------------------------------------------
     // Инициализация графиков Chart.js
@@ -464,19 +651,89 @@
       },
     });
 
-    const scoreHistogramChart = new Chart(document.getElementById("scoreHistogramChart"), {
-      type: "bar",
+    const prChart = new Chart(document.getElementById("prChart"), {
+      type: "line",
       data: {
-        labels: [],
         datasets: [
-          { label: "Label 0", data: [], backgroundColor: "rgba(59,130,246,0.55)" },
-          { label: "Label 1", data: [], backgroundColor: "rgba(239,68,68,0.55)" },
-          { label: "Thresholds", type: "line", data: [], borderColor: "#facc15", borderDash: [6, 6], pointRadius: 0, tension: 0 },
+          {
+            label: "PR",
+            data: [],
+            borderColor: "#38bdf8",
+            backgroundColor: "transparent",
+            pointRadius: 0,
+            tension: 0.15,
+          },
         ],
       },
       options: {
         animation: { duration: 350 },
-        scales: { y: { beginAtZero: true } },
+        parsing: false,
+        scales: {
+          x: { type: "linear", min: 0, max: 1, title: { display: true, text: "Recall" } },
+          y: { min: 0, max: 1, title: { display: true, text: "Precision" } },
+        },
+      },
+    });
+
+    const scoreHistogramChart = new Chart(document.getElementById("scoreHistogramChart"), {
+      type: "bar",
+      plugins: [thresholdLinesPlugin],
+      data: {
+        datasets: [
+          { label: "Normal (label=0)", data: [], backgroundColor: "rgba(59,130,246,0.45)", borderColor: "rgba(59,130,246,0.95)", borderWidth: 1 },
+          { label: "Anomaly (label=1)", data: [], backgroundColor: "rgba(239,68,68,0.45)", borderColor: "rgba(239,68,68,0.95)", borderWidth: 1 },
+        ],
+      },
+      options: {
+        animation: { duration: 350 },
+        scales: {
+          x: {
+            type: "linear",
+            min: 0,
+            max: 1,
+            title: { display: true, text: "Risk score" },
+          },
+          y: {
+            beginAtZero: true,
+            title: { display: true, text: "Count" },
+          },
+        },
+        plugins: {
+          thresholdLinesPlugin: {
+            thresholds: [
+              { value: 0.3, color: "#f59e0b" },
+              { value: 0.7, color: "#ef4444" },
+            ],
+          },
+        },
+      },
+    });
+
+    const thresholdAnalysisChart = new Chart(document.getElementById("thresholdAnalysisChart"), {
+      type: "line",
+      plugins: [thresholdLinesPlugin],
+      data: {
+        datasets: [
+          { label: "Precision", data: [], borderColor: "#60a5fa", backgroundColor: "transparent", pointRadius: 0, tension: 0.2 },
+          { label: "Recall", data: [], borderColor: "#f59e0b", backgroundColor: "transparent", pointRadius: 0, tension: 0.2 },
+          { label: "F1", data: [], borderColor: "#22c55e", backgroundColor: "transparent", pointRadius: 0, tension: 0.2 },
+        ],
+      },
+      options: {
+        animation: { duration: 350 },
+        parsing: false,
+        scales: {
+          x: { type: "linear", min: 0.1, max: 0.9, title: { display: true, text: "Threshold" } },
+          y: { min: 0, max: 1, title: { display: true, text: "Metric value" } },
+        },
+        plugins: {
+          thresholdLinesPlugin: {
+            thresholds: [
+              { value: 0.3, color: "#f59e0b" },
+              { value: 0.7, color: "#ef4444" },
+            ],
+          },
+        },
       },
     });
 
@@ -551,38 +808,43 @@
     // ------------------------------------------------------------------
     // Работа с данными ML
     // ------------------------------------------------------------------
-    function renderMlMetricsTable(metrics) {
-      const rows = [
-        { key: "default", label: "Default" },
-        { key: "tuned_05", label: "Tuned (0.5)" },
-        { key: "production", label: "Production (0.3/0.7)" },
-      ];
+    function renderModelSummary(metrics, testScoresCount) {
+      const production = metrics?.production || {};
+      const defaultMetrics = metrics?.default || {};
 
-      // Выбираем лучшую модель по F1.
-      let bestKey = rows[0].key;
-      let bestF1 = -1;
-      rows.forEach((r) => {
-        const f1 = Number(metrics?.[r.key]?.f1 ?? 0);
-        if (f1 > bestF1) {
-          bestF1 = f1;
-          bestKey = r.key;
-        }
-      });
+      summaryF1.textContent = Number(production.f1 ?? 0).toFixed(3);
+      summaryPrecision.textContent = Number(production.precision ?? 0).toFixed(3);
+      summaryRecall.textContent = Number(production.recall ?? 0).toFixed(3);
+      summaryRocAuc.textContent = Number(defaultMetrics.roc_auc ?? 0).toFixed(3);
+      summaryAccuracy.textContent = Number(defaultMetrics.accuracy ?? 0).toFixed(3);
+      summarySpecificity.textContent = Number(defaultMetrics.specificity ?? 0).toFixed(3);
 
-      mlMetricsBody.innerHTML = "";
-      rows.forEach((r) => {
-        const m = metrics?.[r.key] || {};
-        const tr = document.createElement("tr");
-        if (r.key === bestKey) tr.classList.add("best-model");
-        tr.innerHTML = `
-          <td>${r.label}</td>
-          <td>${Number(m.precision ?? 0).toFixed(3)}</td>
-          <td>${Number(m.recall ?? 0).toFixed(3)}</td>
-          <td>${Number(m.f1 ?? 0).toFixed(3)}</td>
-          <td>${m.roc_auc !== undefined ? Number(m.roc_auc).toFixed(3) : "-"}</td>
-        `;
-        mlMetricsBody.appendChild(tr);
-      });
+      // Обучение идет в split 80/20, поэтому восстанавливаем train size по test size.
+      const estimatedTrainSamples = Math.round((Number(testScoresCount || 0) / 0.2) * 0.8);
+      summaryNote.textContent =
+        `Model: Isolation Forest | Trained on ${estimatedTrainSamples} samples | Contamination: 0.06`;
+    }
+
+    function renderConfusionMatrix(metrics) {
+      const cm = metrics?.default?.confusion_matrix || [[0, 0], [0, 0]];
+      const tn = Number(cm?.[0]?.[0] ?? 0);
+      const fp = Number(cm?.[0]?.[1] ?? 0);
+      const fn = Number(cm?.[1]?.[0] ?? 0);
+      const tp = Number(cm?.[1]?.[1] ?? 0);
+      const total = Math.max(1, tn + fp + fn + tp);
+
+      const setCell = (id, title, value) => {
+        const root = document.getElementById(id);
+        if (!root) return;
+        root.querySelector(".cm-title").textContent = title;
+        root.querySelector(".cm-value").textContent = String(value);
+        root.querySelector(".cm-pct").textContent = `${((value / total) * 100).toFixed(2)}%`;
+      };
+
+      setCell("cm-tn", "TN", tn);
+      setCell("cm-fp", "FP", fp);
+      setCell("cm-fn", "FN", fn);
+      setCell("cm-tp", "TP", tp);
     }
 
     function renderRocChart(rocData) {
@@ -595,34 +857,38 @@
       rocAucText.textContent = `AUC = ${Number(rocData?.auc ?? 0).toFixed(2)}`;
     }
 
+    function renderPrChart(prData) {
+      const precision = prData?.precision || [];
+      const recall = prData?.recall || [];
+      const points = recall.map((x, i) => ({ x, y: precision[i] ?? 0 }));
+      prChart.data.datasets[0].data = points;
+      prChart.update();
+      prAucText.textContent = `PR-AUC = ${Number(prData?.auc ?? 0).toFixed(2)}`;
+    }
+
     function renderHistogram(testScores) {
-      const binCount = 20;
-      const bins = Array.from({ length: binCount }, (_, i) => i / binCount);
-      const labels = bins.map((start) => `${start.toFixed(2)}-${(start + 1 / binCount).toFixed(2)}`);
-
-      const normal = new Array(binCount).fill(0);
-      const anomaly = new Array(binCount).fill(0);
-
+      const binCount = 25;
+      const binWidth = 1 / binCount;
+      const normalBins = new Array(binCount).fill(0);
+      const anomalyBins = new Array(binCount).fill(0);
       testScores.forEach((item) => {
         const score = clamp(Number(item.score ?? 0), 0, 0.999999);
-        const idx = Math.floor(score * binCount);
-        if (Number(item.label) === 1) anomaly[idx] += 1;
-        else normal[idx] += 1;
+        const idx = Math.min(binCount - 1, Math.floor(score / binWidth));
+        if (Number(item.label) === 1) anomalyBins[idx] += 1;
+        else normalBins[idx] += 1;
       });
 
-      const maxY = Math.max(1, ...normal, ...anomaly);
-      const thresholdLine = labels.map((_, i) => {
-        const center = (i + 0.5) / binCount;
-        if (Math.abs(center - 0.3) < 1 / binCount / 2 || Math.abs(center - 0.7) < 1 / binCount / 2) {
-          return maxY;
-        }
-        return null;
-      });
+      const toPoints = (bins) => bins.map((count, i) => ({
+        x: (i + 0.5) * binWidth,
+        y: count,
+      }));
 
-      scoreHistogramChart.data.labels = labels;
-      scoreHistogramChart.data.datasets[0].data = normal;
-      scoreHistogramChart.data.datasets[1].data = anomaly;
-      scoreHistogramChart.data.datasets[2].data = thresholdLine;
+      scoreHistogramChart.data.datasets[0].data = toPoints(normalBins);
+      scoreHistogramChart.data.datasets[1].data = toPoints(anomalyBins);
+      scoreHistogramChart.data.datasets.forEach((dataset) => {
+        dataset.barThickness = 8;
+        dataset.maxBarThickness = 10;
+      });
       scoreHistogramChart.update();
     }
 
@@ -631,6 +897,23 @@
       featureImportanceChart.data.labels = sorted.map((x) => x.feature);
       featureImportanceChart.data.datasets[0].data = sorted.map((x) => Number(x.importance ?? 0));
       featureImportanceChart.update();
+    }
+
+    function renderThresholdAnalysis(items) {
+      const rows = [...(items || [])].sort((a, b) => Number(a.threshold) - Number(b.threshold));
+      thresholdAnalysisChart.data.datasets[0].data = rows.map((row) => ({
+        x: Number(row.threshold ?? 0),
+        y: Number(row.precision ?? 0),
+      }));
+      thresholdAnalysisChart.data.datasets[1].data = rows.map((row) => ({
+        x: Number(row.threshold ?? 0),
+        y: Number(row.recall ?? 0),
+      }));
+      thresholdAnalysisChart.data.datasets[2].data = rows.map((row) => ({
+        x: Number(row.threshold ?? 0),
+        y: Number(row.f1 ?? 0),
+      }));
+      thresholdAnalysisChart.update();
     }
 
     function renderPcaBase(points) {
@@ -769,6 +1052,8 @@
         fiResp,
         pcaResp,
         rocResp,
+        prResp,
+        thresholdResp,
         scoresResp,
         eventLogResp,
       ] = await Promise.all([
@@ -776,6 +1061,8 @@
         fetch("/api/feature_importance"),
         fetch("/api/pca_data"),
         fetch("/api/roc_data"),
+        fetch("/api/pr_curve"),
+        fetch("/api/threshold_analysis"),
         fetch("/api/test_scores"),
         fetch("/api/event_log"),
       ]);
@@ -784,13 +1071,18 @@
       const featureImportance = await fiResp.json();
       const pcaData = await pcaResp.json();
       const rocData = await rocResp.json();
+      const prData = await prResp.json();
+      const thresholdData = await thresholdResp.json();
       const testScores = await scoresResp.json();
       const eventLog = await eventLogResp.json();
 
-      renderMlMetricsTable(metrics);
+      renderModelSummary(metrics, testScores.length);
+      renderConfusionMatrix(metrics);
       renderRocChart(rocData);
+      renderPrChart(prData);
       renderHistogram(testScores);
       renderFeatureImportance(featureImportance);
+      renderThresholdAnalysis(thresholdData);
       renderPcaBase(pcaData);
 
       // Инициализируем ленту событий из истории.

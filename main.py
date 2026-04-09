@@ -67,6 +67,8 @@ feature_importance: list[dict[str, Any]] = []
 test_scores_data: list[dict[str, Any]] = []
 roc_curve_data: dict[str, Any] = {}
 pca_projection_data: list[dict[str, Any]] = []
+pr_curve_data: dict[str, Any] = {}
+threshold_analysis_data: list[dict[str, Any]] = []
 
 
 # ------------------------------------------------------------
@@ -333,6 +335,7 @@ async def startup_event() -> None:
     """
     global isolation_forest_model, scaler, minmax_scaler
     global ml_metrics, feature_importance, test_scores_data, roc_curve_data, pca_projection_data
+    global pr_curve_data, threshold_analysis_data
     global ueba_background_task
 
     isolation_forest_path = DATA_DIR / "isolation_forest.pkl"
@@ -348,6 +351,8 @@ async def startup_event() -> None:
     test_scores_data = _load_json_file(DATA_DIR / "test_scores.json", [])
     roc_curve_data = _load_json_file(DATA_DIR / "roc_curve_data.json", {})
     pca_projection_data = _load_json_file(DATA_DIR / "pca_projection.json", [])
+    pr_curve_data = _load_json_file(DATA_DIR / "pr_curve_data.json", {})
+    threshold_analysis_data = _load_json_file(DATA_DIR / "threshold_analysis.json", [])
 
     # Запускаем фоновый мониторинг только один раз.
     if ueba_background_task is None or ueba_background_task.done():
@@ -638,6 +643,16 @@ async def api_roc_data() -> JSONResponse:
 @app.get("/api/test_scores")
 async def api_test_scores() -> JSONResponse:
     return JSONResponse(content=test_scores_data)
+
+
+@app.get("/api/pr_curve")
+async def api_pr_curve() -> JSONResponse:
+    return JSONResponse(content=pr_curve_data)
+
+
+@app.get("/api/threshold_analysis")
+async def api_threshold_analysis() -> JSONResponse:
+    return JSONResponse(content=threshold_analysis_data)
 
 
 @app.get("/api/event_log")
